@@ -99,27 +99,27 @@ export default function SchedulingPage({
         }
       );
 
-      const url =
-        res.data?.payment_url ||
-        res.data?.checkout_url;
+      console.log("BOOKING RESPONSE:", res.data);
+
+      // ✅ STRICT FIX
+      const url = res.data?.checkout_url;
 
       if (url) {
-        // ✅ SAVE DATA FOR NEXT PAGE
+        // save for booking page
         localStorage.setItem("payment_url", url);
-        localStorage.setItem(
-          "booking_data",
-          JSON.stringify(res.data)
-        );
+        localStorage.setItem("booking_data", JSON.stringify(res.data));
 
-        // ✅ NEXT.JS NAVIGATION (FIXED)
+        // redirect to booking page
         router.push("/booking");
-      } else {
-        alert("Booking successful");
-        onContinue?.(res.data);
+        return;
       }
+
+      // ❌ if no URL, it's an error from backend
+      alert("Payment URL not returned from server");
     } catch (err: any) {
       console.error(err.response?.data || err);
-      alert(err.response?.data?.message || "Booking failed");
+    console.log("FULL ERROR:", err.response);
+alert(JSON.stringify(err.response?.data));
     } finally {
       setLoading(false);
     }
