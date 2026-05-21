@@ -45,28 +45,21 @@ export default function SchedulingPage({
     }
   }, [range, adLength, playsPerDay]);
 
-  // ===== CLEAN IMAGE PREVIEW =====
-  useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
+  // ===== IMAGE HANDLER (BASE64 ✅)
+  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const f = e.target.files[0];
+      setFile(f);
 
-  // ===== IMAGE HANDLER =====
-const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files?.[0]) {
-    const f = e.target.files[0];
-    setFile(f);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string); // ✅ correct
+      };
+      reader.readAsDataURL(f);
+    }
+  };
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreview(reader.result as string); // ✅ base64
-    };
-    reader.readAsDataURL(f);
-  }
-};
-console.log("SAVING IMAGE:", preview);
-  // ===== BOOKING (STEP 1 ONLY → NO API) =====
+  // ===== BOOKING =====
   const handleBooking = () => {
     if (!billboard?.id) {
       alert("Billboard not loaded yet");
@@ -88,6 +81,9 @@ console.log("SAVING IMAGE:", preview);
       return;
     }
 
+    // ✅ DEBUG
+    console.log("SAVING IMAGE:", preview);
+
     // ✅ SAVE DATA
     const bookingData = {
       billboard,
@@ -96,7 +92,7 @@ console.log("SAVING IMAGE:", preview);
       totalPrice,
       adLength,
       playsPerDay,
-      image: preview,
+      image: preview, // ✅ base64 stored
     };
 
     localStorage.setItem("booking_data", JSON.stringify(bookingData));
@@ -114,7 +110,7 @@ console.log("SAVING IMAGE:", preview);
     );
   }
 
-  // ===== UI =====
+  // ===== UI (UNCHANGED) =====
   return (
     <div className="bg-[#0b0e14] min-h-screen text-white p-8">
       <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10">
