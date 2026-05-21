@@ -60,6 +60,8 @@ class BillboardController extends Controller
             'screen_size' => 'nullable|string|max:255',
             'duration' => 'nullable|string|max:255',
             'media' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:51200',
+            'owner_id' => auth()->id(), // 🔥 IMPORTANT
+            'status' => 'pending'
         ]);
 
         $path = $request->file('media')->store('billboards', 'public');

@@ -71,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/billboards/pending', [AdminBillboardController::class, 'pending']);
         Route::post('/admin/billboards/{id}/approve', [AdminBillboardController::class, 'approve']);
         Route::post('/admin/billboards/{id}/reject', [AdminBillboardController::class, 'reject']);
-
+        Route::get('/admin/notifications', [AdminController::class, 'notifications']);
         Route::get('/admin/bookings', [BookingController::class, 'index']);
         Route::post('/admin/bookings/{id}/approve', [BookingController::class, 'approve']);
     });
@@ -114,5 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
         'user' => $user
     ]);
 });
+
+Route::middleware('auth:sanctum')->get('/notifications', [NotificationController::class, 'index']);
 
 });

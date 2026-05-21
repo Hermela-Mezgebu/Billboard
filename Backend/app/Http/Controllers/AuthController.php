@@ -5,45 +5,48 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
     // ✅ REGISTER
-  public function register(Request $request)
-{
-    $role = $request->input('role', 'client');
+    public function register(Request $request)
+    {
+        $role = $request->input('role', 'client');
 
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email',
-        'password' => 'required|min:6',
-        'role' => 'nullable|string|in:client,owner',
-        'license_number' => 'nullable|string|max:255', // ✅ FIXED
-    ]);
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6',
+            'role' => 'required',
+        ]);
 
-    // ✅ EXTRA SAFETY CHECK
-    if ($role === 'owner' && !$request->license_number) {
+        // 🔥 AUTO GENERATE LICENSE FOR OWNER
+        $licenseNumber = null;
+        $licenseStatus = null;
+
+        if ($role === 'owner') {
+            $licenseNumber = 'LIC-' . strtoupper(Str::random(8));
+            $licenseStatus = 'pending';
+        }
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'role' => $role,
+            'license_number' => $licenseNumber,
+            'license_status' => $licenseStatus,
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message' => 'License number is required for owners'
-        ], 422);
+            'message' => 'User registered successfully',
+            'token' => $token,
+            'user' => $user
+        ], 201);
     }
-
-    $user = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'password' => Hash::make($request->password),
-        'role' => in_array($role, ['client', 'owner']) ? $role : 'client',
-        'license_number' => $role === 'owner' ? $request->license_number : null,
-    ]);
-
-    $token = $user->createToken('auth_token')->plainTextToken;
-
-    return response()->json([
-        'message' => 'User registered successfully',
-        'token' => $token,
-        'user' => $user
-    ], 201);
-}
 
     // ✅ LOGIN
     public function login(Request $request)
@@ -53,7 +56,6 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        // ✅ FIND USER
         $user = User::where('email', $request->email)->first();
 
         // ❌ INVALID LOGIN
@@ -63,7 +65,14 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // ✅ DELETE OLD TOKENS (clean sessions)
+        // 🚫 BLOCK OWNER IF LICENSE NOT APPROVED
+        if ($user->role === 'owner' && $user->license_status !== 'approved') {
+            return response()->json([
+                'message' => 'Your license is not approved yet. Please wait for admin approval.'
+            ], 403);
+        }
+
+        // ✅ DELETE OLD TOKENS
         $user->tokens()->delete();
 
         // ✅ CREATE NEW TOKEN
@@ -76,7 +85,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ✅ LOGOUT (VERY IMPORTANT)
+    // ✅ LOGOUT
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

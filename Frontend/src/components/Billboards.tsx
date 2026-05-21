@@ -20,6 +20,12 @@ interface Billboard {
   title: string;
   location: string;
   image: string;
+
+  // ✅ REQUIRED BY BillboardCard
+  neighborhood: string;
+  description: string;
+  pricePerMonth: number;
+
   category: string;
 }
 
@@ -53,17 +59,23 @@ export default function Billboards({ onSelect }: BillboardsProps) {
         const data = await res.json();
 
         // ✅ Normalize backend response
-        const normalized = data.map((b: any) => ({
-          id: b.id,
-          title: b.title || "Billboard",
-          location: b.location || "",
-          image:
-            b.image ||
-            b.image_url ||
-            (Array.isArray(b.images) ? b.images[0] : "") ||
-            "/placeholder.jpg",
-          category: b.type || "Digital", // 🔥 IMPORTANT
-        }));
+       const normalized = data.map((b: any) => ({
+  id: b.id,
+  title: b.title || "Billboard",
+  location: b.location || "",
+  image:
+    b.image ||
+    b.image_url ||
+    (Array.isArray(b.images) ? b.images[0] : "") ||
+    "/placeholder.jpg",
+
+  // ✅ FIXES
+  neighborhood: b.neighborhood || b.location || "Unknown Area",
+  description: b.description || "No description available",
+  pricePerMonth: Number(b.price || 1000),
+
+  category: b.type || "Digital",
+}));
 
         setBillboards(normalized);
       } catch (err) {
