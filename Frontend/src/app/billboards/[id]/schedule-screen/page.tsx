@@ -17,7 +17,16 @@ export default function Page() {
         const res = await fetch(
           `http://127.0.0.1:8000/api/billboards/${id}`
         );
-        const data = await res.json();
+       let data;
+
+try {
+  data = await res.json();
+} catch {
+  const text = await res.text();
+  console.error("NOT JSON:", text);
+  alert("Server returned invalid response");
+  return;
+}
         setBillboard(data);
       } catch (err) {
         console.error("Failed to fetch billboard", err);

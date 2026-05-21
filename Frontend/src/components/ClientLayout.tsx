@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Navbar  from "@/components/Navbar";
+import {Navbar}  from "@/components/Navbar";
 import { AuthModal } from "@/components/AuthModal";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import PageTransition from "./PageTransition";
@@ -44,7 +44,10 @@ export default function ClientLayout({
 
   return (
     <>
-      <Navbar onOpenAuth={openAuth} />
+     <Navbar 
+  onOpenAuth={openAuth} 
+  onNavigate={(page) => router.push(`/${page}`)} 
+/>
 
       <AuthModal
         isOpen={isAuthOpen}

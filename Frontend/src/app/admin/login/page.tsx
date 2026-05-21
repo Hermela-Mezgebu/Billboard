@@ -12,7 +12,16 @@ export default function AdminLogin() {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json();
+  let data;
+
+try {
+  data = await res.json();
+} catch {
+  const text = await res.text();
+  console.error("NOT JSON:", text);
+  alert("Server returned invalid response");
+  return;
+}
 
     if (data.token) {
       localStorage.setItem("adminToken", data.token);

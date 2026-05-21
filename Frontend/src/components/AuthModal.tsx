@@ -26,12 +26,13 @@ export function AuthModal({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [name, setName] = useState("");
   const selectedRole = searchParams.get("role") || "client";
 
   const toggleMode = () =>
     setMode(mode === "login" ? "signup" : "login");
 
+  
   // ✅ AUTO OPEN FROM URL
   useEffect(() => {
     const auth = searchParams.get("auth");
@@ -51,15 +52,15 @@ export function AuthModal({
           ? "http://127.0.0.1:8000/api/register"
           : "http://127.0.0.1:8000/api/login";
 
-      const body =
-        mode === "signup"
-          ? {
-              name: "User",
-              email,
-              password,
-              role: selectedRole, // ✅ from URL
-            }
-          : { email, password };
+ const body =
+  mode === "signup"
+    ? {
+        name, // ✅ REAL NAME
+        email,
+        password,
+        role: selectedRole,
+      }
+    : { email, password };
 
       const res = await fetch(url, {
         method: "POST",
@@ -69,7 +70,16 @@ export function AuthModal({
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+    let data;
+
+try {
+  data = await res.json();
+} catch {
+  const text = await res.text();
+  console.error("NOT JSON:", text);
+  alert("Server returned invalid response");
+  return;
+}
 
       if (!res.ok) {
         throw new Error(data.message || "Failed");
@@ -165,11 +175,13 @@ export function AuthModal({
 
                 <form className="space-y-4" onSubmit={handleSubmit}>
                   {mode === "signup" && (
-                    <input
-                      placeholder="Full Name"
-                      className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
-                    />
-                  )}
+  <input
+    placeholder="Full Name"
+    value={name}
+    onChange={(e) => setName(e.target.value)}
+    className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
+  />
+)}
 
                   <input
                     type="email"

@@ -82,64 +82,37 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:client')->group(function () {
-
-        Route::post('/bookings/{id}', function (Request $req, $id) {
-
-            // ✅ VALIDATION
-            $req->validate([
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after_or_equal:start_date',
-                'amount' => 'required|numeric|min:1',
-            ]);
-
-            // ✅ GET BILLBOARD
-            $billboard = Billboard::findOrFail($id);
-
-            // ✅ CALCULATE DAYS
-            $start = Carbon::parse($req->start_date);
-            $end = Carbon::parse($req->end_date);
-            $days = $start->diffInDays($end) + 1;
-
-            // ✅ CALCULATE PRICE (SERVER-SIDE SAFE)
-            $total_price = $days * $billboard->price;
-
-            // ✅ CREATE BOOKING
-            $booking = Booking::create([
-                'billboard_id' => $id,
-                'user_id' => $req->user()->id,
-                'start_date' => $start,
-                'end_date' => $end,
-                'total_price' => $total_price,
-                'status' => 'pending',
-            ]);
-
-            // ✅ PAYMENT
-            $tx_ref = uniqid('tx_');
-
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('CHAPA_SECRET_KEY'),
-            ])->post('https://api.chapa.co/v1/transaction/initialize', [
-                "amount" => $total_price,
-                "currency" => "ETB",
-                "email" => $req->user()->email,
-                "tx_ref" => $tx_ref,
-                "callback_url" => url('/api/payment/callback'),
-                "return_url" => "http://localhost:3000/payment-success",
-                "customization" => [
-                    "title" => "Billboard Booking",
-                    "description" => "Payment for billboard booking"
-                ]
-            ]);
-
-            $data = $response->json();
-
-            return response()->json([
-                'booking' => $booking,
-                'checkout_url' => $data['data']['checkout_url'] ?? null
-            ]);
-        });
-
+        Route::post('/bookings/{id}', [BookingController::class, 'store']);
         Route::get('/my-bookings', [BookingController::class, 'myBookings']);
     });
+
+    Route::post('/user/update', function (Request $req) {
+    $user = $req->user();
+
+    $req->validate([
+        'name' => 'required|string',
+        'email' => 'required|email',
+        'password' => 'nullable|min:6',
+        'image' => 'nullable|image'
+    ]);
+
+    if ($req->hasFile('image')) {
+        $path = $req->file('image')->store('profiles', 'public');
+        $user->image = $path;
+    }
+
+    $user->name = $req->name;
+    $user->email = $req->email;
+
+    if ($req->password) {
+        $user->password = bcrypt($req->password);
+    }
+
+    $user->save();
+
+    return response()->json([
+        'user' => $user
+    ]);
+});
 
 });

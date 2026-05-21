@@ -1,89 +1,42 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { DayPicker, DateRange } from "react-day-picker";
-import "react-day-picker/dist/style.css";
-import { differenceInDays, format, startOfToday } from "date-fns";
-import axios from "axios";
+import { format } from "date-fns";
 import { bookingService } from "@/services/api";
+import { CheckCircle } from "lucide-react";
+import QRCode from "react-qr-code";
 
-interface BookingPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function BookingPage({ params }: BookingPageProps) {
-  const id = params?.id;
-
-  const [range, setRange] = useState<DateRange | undefined>();
-  const [disabledDates, setDisabledDates] = useState<Date[]>([]);
-  const pricePerDay = 50;
-
-  const [image, setImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState("");
+export default function BookingPage() {
+  const [data, setData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🚨 SAFETY CHECK (prevents /undefined API calls)
+  // ✅ LOAD DATA
   useEffect(() => {
-    if (!id) return;
-  }, [id]);
-
-  // 🔥 FETCH BOOKED DATES
-  useEffect(() => {
-    if (!id) return;
-
-    axios
-      .get(`http://127.0.0.1:8000/api/billboards/${id}/schedule-screen`)
-      .then((res) => {
-        const dates = res.data.map((d: string) => new Date(d));
-        setDisabledDates(dates);
-      })
-      .catch((err) => {
-        console.error("Error fetching bookings:", err.response?.data || err);
-      });
-  }, [id]);
-
-  // 🔥 TOTAL PRICE
-  const total = useMemo(() => {
-    if (range?.from && range?.to) {
-      const days = differenceInDays(range.to, range.from) + 1;
-      return days * pricePerDay;
+    const stored = localStorage.getItem("booking_data");
+    if (stored) {
+      try {
+        setData(JSON.parse(stored));
+      } catch {
+        console.error("Invalid booking data");
+      }
     }
-    return 0;
-  }, [range]);
+  }, []);
 
-  // 🔥 IMAGE PREVIEW
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  };
+  // ✅ BOOKING CODE
+  const bookingCode = useMemo(() => {
+    return "BB-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  }, []);
 
-  // 🔥 BOOKING FUNCTION (FIXED)
+  if (!data) {
+    return <div className="text-white p-10">Loading booking...</div>;
+  }
+
+  // ✅ FINAL BOOKING
   const handleBooking = async () => {
-    if (!id) {
-      alert("Invalid billboard ID");
-      return;
-    }
-
-    if (!range?.from || !range?.to) {
-      alert("Please select a date range");
-      return;
-    }
-
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("You are not logged in");
-      return;
-    }
-
-    if (!image) {
-      alert("Please upload an ad image");
+      alert("Login first");
       return;
     }
 
@@ -92,117 +45,144 @@ export default function BookingPage({ params }: BookingPageProps) {
     try {
       const form = new FormData();
 
-      form.append("start_date", format(range.from, "yyyy-MM-dd"));
-      form.append("end_date", format(range.to, "yyyy-MM-dd"));
-      form.append("amount", total.toString());
-      form.append("image", image);
+      form.append(
+        "start_date",
+        format(new Date(data.start), "yyyy-MM-dd")
+      );
 
-      const res = await bookingService.createBooking(id, form);
+      form.append(
+        "end_date",
+        format(new Date(data.end), "yyyy-MM-dd")
+      );
 
-      console.log("BOOKING RESPONSE:", res);
+      form.append("amount", data.totalPrice.toString());
+      form.append("booking_code", bookingCode);
 
-      // ✅ SAFE PAYMENT REDIRECT HANDLING
+      const res = await bookingService.createBooking(
+        data.billboard.id,
+        form
+      );
+
       const paymentUrl =
-        res?.payment_url ||
-        res?.data?.payment_url ||
-        res?.checkout_url ||
-        res?.data?.checkout_url;
+        res?.checkout_url || res?.data?.checkout_url;
 
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        alert("Booking successful but no payment URL returned.");
-        window.location.href = "/client";
+        alert("No payment URL");
       }
     } catch (err: any) {
-      console.error("FULL ERROR:", err.response?.data || err);
-
-      const backendError = err.response?.data;
-
-      if (backendError?.errors) {
-        alert(
-          Object.entries(backendError.errors)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join("\n")
-        );
-      } else {
-        alert(
-          backendError?.message ||
-            err.message ||
-            "Booking failed. Please try again."
-        );
-      }
+      console.error(err.response?.data || err);
+      alert("Booking failed");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto pt-10 px-4 text-white">
-      <h1 className="text-3xl font-bold mb-6">Book Billboard #{id}</h1>
+    <div className="min-h-screen bg-[#0b0e14] flex items-center justify-center px-4 py-10 text-white">
+      <div className="w-full max-w-5xl bg-[#111827] rounded-3xl shadow-2xl overflow-hidden">
 
-      <div className="flex flex-col md:flex-row gap-10">
-        {/* CALENDAR */}
-        <div className="bg-gray-800 p-4 rounded-xl">
-          <DayPicker
-            mode="range"
-            selected={range}
-            onSelect={setRange}
-            disabled={[
-              { before: startOfToday() },
-              ...disabledDates,
-            ]}
-          />
-        </div>
+        {/* HEADER */}
+       <div className="flex flex-col items-center justify-center text-center p-8 border-b border-gray-800">
+  <CheckCircle className="text-green-500 mb-3" size={50} />
 
-        {/* DETAILS */}
-        <div className="flex-1">
-          <div className="bg-gray-900 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4">Booking Details</h2>
+  <h1 className="text-2xl font-bold">
+    Booking Confirmation
+  </h1>
 
-            <p>
-              Start:{" "}
-              <span className="text-blue-400">
-                {range?.from ? format(range.from, "PPP") : "---"}
+  <p className="text-gray-400 text-sm mt-2 max-w-md">
+    Your campaign is ready. Confirm and proceed to payment.
+  </p>
+</div>
+
+        {/* MAIN CONTENT */}
+        <div className="grid md:grid-cols-2">
+
+          {/* LEFT → IMAGE */}
+          <div className="bg-black">
+            {data.image && (
+              <img
+                src={data.image}
+                alt="Ad Preview"
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+
+          {/* RIGHT → DETAILS */}
+          <div className="p-8 space-y-6">
+
+            {/* BILLBOARD */}
+            <div className="flex justify-between border-b border-gray-700 pb-3">
+              <span className="text-gray-400">Billboard</span>
+              <span className="font-semibold">
+                {data.billboard.location}
               </span>
-            </p>
+            </div>
 
-            <p>
-              End:{" "}
-              <span className="text-blue-400">
-                {range?.to ? format(range.to, "PPP") : "---"}
+            {/* DATES */}
+            <div className="flex justify-between border-b border-gray-700 pb-3">
+              <span className="text-gray-400">Start</span>
+              <span>
+                {format(new Date(data.start), "PPP")}
               </span>
-            </p>
+            </div>
 
-            <h2 className="text-2xl font-bold text-green-400 mt-4">
-              Total: ${total}
-            </h2>
+            <div className="flex justify-between border-b border-gray-700 pb-3">
+              <span className="text-gray-400">End</span>
+              <span>
+                {format(new Date(data.end), "PPP")}
+              </span>
+            </div>
 
-            {/* IMAGE */}
-            <div className="mt-6">
-              <label className="block text-sm mb-2">Upload Ad Image</label>
-              <input type="file" onChange={handleImage} />
+            {/* PRICE */}
+            <div className="flex justify-between border-b border-gray-700 pb-3">
+              <span className="text-gray-400">Total</span>
+              <span className="text-green-400 font-bold text-lg">
+                ${data.totalPrice}
+              </span>
+            </div>
 
-              {preview && (
-                <Image
-                  src={preview}
-                  alt="preview"
-                  width={160}
-                  height={160}
-                  className="w-40 rounded mt-3"
-                  unoptimized
+            {/* BOOKING CODE */}
+            <div className="text-center bg-[#0f172a] p-4 rounded-xl border border-blue-500">
+              <p className="text-gray-400 text-sm">
+                Booking Code
+              </p>
+              <p className="text-xl font-bold text-blue-400 tracking-widest">
+                {bookingCode}
+              </p>
+            </div>
+
+            {/* QR CODE */}
+            <div className="flex flex-col items-center gap-3 mt-4">
+              <p className="text-gray-400 text-sm">
+                Scan Ticket
+              </p>
+
+              <div className="bg-white p-3 rounded-xl">
+                <QRCode
+                  value={JSON.stringify({
+                    code: bookingCode,
+                    billboard: data.billboard.location,
+                    start: data.start,
+                    end: data.end,
+                    amount: data.totalPrice,
+                  })}
+                  size={120}
                 />
-              )}
+              </div>
             </div>
 
             {/* BUTTON */}
             <button
               onClick={handleBooking}
-              disabled={!range?.from || !range?.to || isSubmitting}
-              className="w-full bg-blue-600 py-3 rounded-lg font-bold mt-6 hover:bg-blue-700 disabled:opacity-50"
+              disabled={isSubmitting}
+              className="w-full mt-6 bg-blue-600 py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:opacity-50"
             >
               {isSubmitting ? "Processing..." : "Confirm & Pay"}
             </button>
+
           </div>
         </div>
       </div>

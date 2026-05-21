@@ -31,7 +31,16 @@ async function getOwnerOrders(): Promise<Order[]> {
       },
     });
 
-    const data = await res.json();
+    let data;
+
+try {
+  data = await res.json();
+} catch {
+  const text = await res.text();
+  console.error("NOT JSON:", text);
+  alert("Server returned invalid response");
+  return;
+}
 
     return Array.isArray(data)
       ? data.map((o: any) => ({

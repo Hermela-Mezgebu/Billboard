@@ -15,47 +15,40 @@ class BookingController extends Controller
         return Booking::where('billboard_id', $id)
             ->get(['start_date', 'end_date']);
     }
-
-   public function store(Request $req, $id)
+public function store(Request $req, $id)
 {
     if (!auth()->check()) {
-        return response()->json([
-            'message' => 'Unauthenticated'
-        ], 401);
+        return response()->json(['message' => 'Unauthenticated'], 401);
     }
 
     try {
-        $chapaSecret = config('services.chapa.secret');
+        $req->validate([
+            'amount' => 'required|numeric|min:1',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+        ]);
 
-        if (!$chapaSecret) {
-            return response()->json([
-                'message' => 'Chapa secret key missing'
-            ], 500);
-        }
+        $tx_ref = uniqid("tx_");
 
-      $response = Http::withHeaders([
-    'Authorization' => 'Bearer ' . env('CHAPA_SECRET'),
-    'Content-Type' => 'application/json'
-])->post('https://api.chapa.co/v1/transaction/initialize', [
-    "amount" => (string) $req->amount,
-    "currency" => "ETB",
-    "email" => auth()->user()->email,
-    "first_name" => auth()->user()->name,
-    "last_name" => "User",
-    "phone_number" => "0912345678",
-    "tx_ref" => uniqid('tx_'),
-    "callback_url" => "http://127.0.0.1:8000/api/payment/callback",
-    "return_url" => "http://localhost:3000/success",
-]);
+        $response = Http::timeout(30)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . env('CHAPA_SECRET'),
+                'Content-Type' => 'application/json'
+            ])
+            ->post('https://api.chapa.co/v1/transaction/initialize', [
+                "amount" => (string)$req->amount,
+                "currency" => "ETB",
+                "email" => auth()->user()->email,
+                "first_name" => auth()->user()->name,
+                "tx_ref" => $tx_ref,
+                "callback_url" => url('/api/payment/callback'),
+                "return_url" => "http://localhost:3000/success"
+            ]);
 
-       
+        $data = $response->json();
 
-      \Log::info('CHAPA RAW:', [
-    'status' => $response->status(),
-    'body' => $response->body()
-]);
- $data = $response->json();
-        // 🔴 IMPORTANT: check status
+        Log::info("CHAPA RESPONSE", $data);
+
         if (!$response->successful() || !isset($data['data']['checkout_url'])) {
             return response()->json([
                 'message' => 'Chapa failed',
@@ -63,18 +56,18 @@ class BookingController extends Controller
             ], 500);
         }
 
-        Booking::create([
+        $booking = Booking::create([
             'billboard_id' => $id,
             'user_id' => auth()->id(),
             'start_date' => $req->start_date,
             'end_date' => $req->end_date,
-            'seconds_per_day' => $req->seconds_per_day,
             'total_price' => $req->amount,
             'status' => 'pending'
         ]);
 
         return response()->json([
-            'checkout_url' => $data['data']['checkout_url']
+            'checkout_url' => $data['data']['checkout_url'],
+            'booking' => $booking
         ]);
 
     } catch (\Exception $e) {

@@ -1,172 +1,278 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { LogIn, Info, AlertCircle, Loader2 } from "lucide-react";
-import { authService } from "../../services/api";
-import { useAuth } from "../../context/AuthContext";
+import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { X, Rocket } from "lucide-react";
+import { FaFacebookF } from "react-icons/fa";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function LoginPage() {
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  mode: "login" | "signup" | "role";
+  setMode: (mode: "login" | "signup" | "role") => void;
+}
+
+export function AuthModal({
+  isOpen,
+  onClose,
+  mode,
+  setMode,
+}: AuthModalProps) {
   const router = useRouter();
-  const { setUser, setRole } = useAuth();
+  const searchParams = useSearchParams();
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [roleSelection, setRoleSelection] = useState<"client" | "owner">(
-    "client",
-  );
+  const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const selectedRole = searchParams.get("role") || "client";
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const toggleMode = () =>
+    setMode(mode === "login" ? "signup" : "login");
 
-  // 🔐 LOGIN (SQLite backend)
-  const handleLogin = async () => {
+  
+  // ✅ AUTO OPEN FROM URL
+  useEffect(() => {
+    const auth = searchParams.get("auth");
+
+    if (auth === "signup") setMode("signup");
+    if (auth === "login") setMode("login");
+  }, [searchParams, setMode]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
     setLoading(true);
-    setError(null);
 
     try {
-      const res = await authService.login({
-        email: form.email,
-        password: form.password,
+      const url =
+        mode === "signup"
+          ? "http://127.0.0.1:8000/api/register"
+          : "http://127.0.0.1:8000/api/login";
+
+ const body =
+  mode === "signup"
+    ? {
+        name, // ✅ REAL NAME
+        email,
+        password,
+        role: selectedRole,
+      }
+    : { email, password };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       });
 
-      const user = res.data.user;
+    let data;
 
-      // 🔒 Optional: ensure role matches selection
-      if (user.role !== roleSelection) {
-        setError("Selected role does not match your account.");
-        setLoading(false);
-        return;
+try {
+  data = await res.json();
+} catch {
+  const text = await res.text();
+  console.error("NOT JSON:", text);
+  alert("Server returned invalid response");
+  return;
+}
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed");
       }
 
-      // ✅ Store in AuthContext and localStorage
-      setUser(user);
-      setRole(user.role);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", res.data.token);
+    if (data.token) {
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("user", JSON.stringify(data.user)); // ✅ REQUIRED
+}
 
-      // 🚀 Redirect based on role
-      if (user.role === "admin") {
-        router.push("/admin");
-      } else if (user.role === "owner") {
-        router.push("/owner");
-      } else if (user.role === "client") {
-        router.push("/client");
+      // ✅ ROLE BASED REDIRECT
+      if (selectedRole === "owner") {
+        window.location.href = "/owner";
       } else {
-        router.push("/");
+        window.location.href = "/client";
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow-xl border">
-      {/* 🧠 Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-        <p className="text-neutral-500">
-          Login to manage your billboard experience
-        </p>
-      </div>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
-      {/* 👤 Role Selection */}
-      <div className="space-y-4 mb-6">
-        <div className="flex gap-4 p-1 bg-neutral-100 rounded-xl">
-          <button
-            onClick={() => setRoleSelection("client")}
-            className={`flex-1 py-3 text-sm font-semibold rounded-lg transition ${
-              roleSelection === "client"
-                ? "bg-white shadow text-blue-600"
-                : "text-neutral-500"
-            }`}
+          {/* BACKDROP */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/70 backdrop-blur-md"
+          />
+
+          {/* MODAL */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative flex h-[650px] w-full max-w-4xl overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl"
           >
-            Advertiser
-          </button>
 
-          <button
-            onClick={() => setRoleSelection("owner")}
-            className={`flex-1 py-3 text-sm font-semibold rounded-lg transition ${
-              roleSelection === "owner"
-                ? "bg-white shadow text-blue-600"
-                : "text-neutral-500"
-            }`}
-          >
-            Owner
-          </button>
-        </div>
+            {/* CLOSE */}
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 z-50 rounded-full p-2 text-gray-400 hover:bg-slate-800"
+            >
+              <X size={20} />
+            </button>
 
-        {/* ℹ️ Info */}
-        <div className="flex gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-          <Info className="w-4 h-4" />
-          <p>
-            {roleSelection === "client"
-              ? "Browse and book billboard ads easily."
-              : "Manage your billboards and earnings."}
-          </p>
-        </div>
-      </div>
+            <div className="flex w-full flex-col md:flex-row">
 
-      {/* 📧 Email */}
-      <input
-        type="email"
-        placeholder="Email"
-        className="w-full mb-4 p-3 border rounded-xl"
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-      />
+              {/* LEFT */}
+              <motion.div
+                animate={{
+                  x: mode === "signup" ? "0%" : "100%",
+                }}
+                className="hidden w-1/2 flex-col items-center justify-center bg-indigo-600 p-12 md:flex"
+              >
+                <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-white/20">
+                  <Rocket size={48} />
+                </div>
 
-      {/* 🔑 Password */}
-      <input
-        type="password"
-        placeholder="Password"
-        className="w-full mb-4 p-3 border rounded-xl"
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
-      />
+                <h2 className="mb-4 text-3xl font-bold">
+                  Welcome to Billbox
+                </h2>
 
-      {/* ❌ Error */}
-      {error && (
-        <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-          <AlertCircle className="w-4 h-4" />
-          {error}
+                <p className="text-indigo-100 text-center">
+                  {mode === "signup"
+                    ? "Create your account to unlock premium features."
+                    : "Welcome back!"}
+                </p>
+              </motion.div>
+
+              {/* RIGHT */}
+              <motion.div
+                animate={{
+                  x: mode === "signup" ? "0%" : "-100%",
+                }}
+                className="flex w-full flex-col justify-center px-8 py-10 md:w-1/2"
+              >
+
+                <div className="mb-6 text-center">
+                  <h3 className="text-2xl font-bold">
+                    {mode === "signup"
+                      ? "Create your account"
+                      : "Welcome Back"}
+                  </h3>
+                </div>
+
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  {mode === "signup" && (
+  <input
+    placeholder="Full Name"
+    value={name}
+    onChange={(e) => setName(e.target.value)}
+    className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
+  />
+)}
+
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
+                  />
+
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
+                  />
+
+                  {error && (
+                    <p className="text-sm text-red-500">{error}</p>
+                  )}
+
+                  <button className="w-full bg-indigo-600 py-3 rounded-xl">
+                    {loading ? "Loading..." : "Submit"}
+                  </button>
+                </form>
+
+                {/* SOCIAL */}
+                <div className="mt-6">
+                  <div className="flex items-center gap-3 text-sm text-gray-400">
+                    <div className="h-px flex-1 bg-gray-600" />
+                    OR
+                    <div className="h-px flex-1 bg-gray-600" />
+                  </div>
+
+                  <div className="mt-4 flex justify-center gap-4">
+                    {/* GOOGLE */}
+                    <button className="h-12 w-12 rounded-full bg-white flex items-center justify-center">
+                      <img
+                        src="https://upload.wikimedia.org/wikipedia/commons/0/09/IOS_Google_icon.png"
+                        className="h-6 w-6"
+                      />
+                    </button>
+
+                    {/* FACEBOOK */}
+                    <SocialButton
+                      icon={<FaFacebookF />}
+                      color="bg-blue-600"
+                    />
+                  </div>
+                </div>
+
+                {/* SWITCH */}
+                <p className="mt-6 text-center text-sm">
+                  {mode === "signup"
+                    ? "Already have an account?"
+                    : "Don't have an account?"}{" "}
+                  <button
+                    onClick={() => {
+                      if (mode === "login") {
+                        router.push("/choose-role"); // ✅ FIXED
+                      } else {
+                        toggleMode();
+                      }
+                    }}
+                    className="font-bold text-indigo-400"
+                  >
+                    {mode === "signup" ? "Sign In" : "Sign Up"}
+                  </button>
+                </p>
+
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
+  );
+}
 
-      {/* 🔐 Login Button */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        disabled={loading}
-        onClick={handleLogin}
-        className="w-full py-4 bg-blue-600 text-white rounded-xl font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition disabled:opacity-50"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Logging in...
-          </>
-        ) : (
-          <>
-            <LogIn className="w-5 h-5" />
-            Login
-          </>
-        )}
-      </motion.button>
-
-      {/* 🔗 Signup */}
-      <p className="text-center text-sm text-neutral-500 mt-6">
-        Don’t have an account?{" "}
-        <span
-          onClick={() => router.push("/choose-role")}
-          className="text-blue-600 cursor-pointer font-semibold"
-        >
-          Sign up
-        </span>
-      </p>
-    </div>
+function SocialButton({
+  icon,
+  color,
+}: {
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <button
+      className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${color}`}
+    >
+      {icon}
+    </button>
   );
 }

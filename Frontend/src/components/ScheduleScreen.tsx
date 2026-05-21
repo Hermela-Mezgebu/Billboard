@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { format, startOfToday, differenceInDays } from "date-fns";
-import axios from "axios";
 import { useRouter } from "next/navigation";
 
 import { Billboard } from "@/types";
@@ -12,13 +11,11 @@ import { Billboard } from "@/types";
 interface SchedulingPageProps {
   billboard: Billboard | null;
   onBack: () => void;
-  onContinue?: (data: any) => void;
 }
 
 export default function SchedulingPage({
   billboard,
   onBack,
-  onContinue,
 }: SchedulingPageProps) {
   const router = useRouter();
 
@@ -30,7 +27,6 @@ export default function SchedulingPage({
   const [adLength, setAdLength] = useState(30);
   const [playsPerDay, setPlaysPerDay] = useState(40);
 
-  const [loading, setLoading] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
 
   const PRICE_PER_SECOND = 0.5;
@@ -39,25 +35,39 @@ export default function SchedulingPage({
   useEffect(() => {
     if (range?.from && range?.to) {
       const days = differenceInDays(range.to, range.from) + 1;
+
       const total =
         days * playsPerDay * adLength * PRICE_PER_SECOND;
+
       setTotalPrice(total);
     } else {
       setTotalPrice(0);
     }
   }, [range, adLength, playsPerDay]);
 
-  // ===== IMAGE HANDLER =====
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const f = e.target.files[0];
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
-    }
-  };
+  // ===== CLEAN IMAGE PREVIEW =====
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
-  // ===== BOOKING =====
-  const handleBooking = async () => {
+  // ===== IMAGE HANDLER =====
+const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files?.[0]) {
+    const f = e.target.files[0];
+    setFile(f);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string); // ✅ base64
+    };
+    reader.readAsDataURL(f);
+  }
+};
+console.log("SAVING IMAGE:", preview);
+  // ===== BOOKING (STEP 1 ONLY → NO API) =====
+  const handleBooking = () => {
     if (!billboard?.id) {
       alert("Billboard not loaded yet");
       return;
@@ -68,64 +78,34 @@ export default function SchedulingPage({
       return;
     }
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Login required");
+    if (!file) {
+      alert("Please upload image");
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const form = new FormData();
-
-      form.append("start_date", format(range.from, "yyyy-MM-dd"));
-      form.append("end_date", format(range.to, "yyyy-MM-dd"));
-      form.append("amount", totalPrice.toString());
-      form.append("seconds_per_day", adLength.toString());
-
-      if (file) {
-        form.append("image", file);
-      }
-
-      const res = await axios.post(
-        `http://127.0.0.1:8000/api/bookings/${billboard.id}`,
-        form,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("BOOKING RESPONSE:", res.data);
-
-      // ✅ STRICT FIX
-      const url = res.data?.checkout_url;
-
-      if (url) {
-        // save for booking page
-        localStorage.setItem("payment_url", url);
-        localStorage.setItem("booking_data", JSON.stringify(res.data));
-
-        // redirect to booking page
-        router.push("/booking");
-        return;
-      }
-
-      // ❌ if no URL, it's an error from backend
-      alert("Payment URL not returned from server");
-    } catch (err: any) {
-      console.error(err.response?.data || err);
-    console.log("FULL ERROR:", err.response);
-alert(JSON.stringify(err.response?.data));
-    } finally {
-      setLoading(false);
+    if (adLength <= 0 || playsPerDay <= 0) {
+      alert("Invalid input values");
+      return;
     }
+
+    // ✅ SAVE DATA
+    const bookingData = {
+      billboard,
+      start: range.from.toISOString(),
+      end: range.to.toISOString(),
+      totalPrice,
+      adLength,
+      playsPerDay,
+      image: preview,
+    };
+
+    localStorage.setItem("booking_data", JSON.stringify(bookingData));
+
+    // ✅ GO TO BOOKING PAGE
+    router.push(`/booking/${billboard.id}`);
   };
 
-  // ✅ SAFE LOADING
+  // ===== LOADING =====
   if (!billboard) {
     return (
       <div className="text-white p-10">
@@ -191,6 +171,7 @@ alert(JSON.stringify(err.response?.data));
           <div className="grid grid-cols-2 gap-4 mb-6">
             <input
               type="number"
+              min={1}
               value={adLength}
               onChange={(e) =>
                 setAdLength(Number(e.target.value))
@@ -201,6 +182,7 @@ alert(JSON.stringify(err.response?.data));
 
             <input
               type="number"
+              min={1}
               value={playsPerDay}
               onChange={(e) =>
                 setPlaysPerDay(Number(e.target.value))
@@ -213,6 +195,7 @@ alert(JSON.stringify(err.response?.data));
           {/* FILE */}
           <input
             type="file"
+            accept="image/*"
             onChange={handleImage}
             className="mb-4"
           />
@@ -243,10 +226,15 @@ alert(JSON.stringify(err.response?.data));
 
             <button
               onClick={handleBooking}
-              disabled={loading}
-              className="flex-1 bg-blue-600 p-3 rounded-xl"
+              disabled={
+                !range?.from ||
+                !range?.to ||
+                !file ||
+                totalPrice <= 0
+              }
+              className="flex-1 bg-blue-600 p-3 rounded-xl disabled:opacity-50"
             >
-              {loading ? "Processing..." : "Book Now"}
+              Book Now
             </button>
           </div>
 
