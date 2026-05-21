@@ -6,6 +6,7 @@ const API_URL = "http://127.0.0.1:8000/api";
 
 const getToken = () =>
   typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
 const getHeaders = (isJson = true) => {
   const token = getToken();
 
@@ -14,6 +15,27 @@ const getHeaders = (isJson = true) => {
     Accept: "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+};
+
+// ✅ SAFE FETCH (prevents HTML crash)
+const safeFetch = async (url: string, options: any = {}) => {
+  const res = await fetch(url, options);
+
+  const text = await res.text();
+
+  try {
+    const data = JSON.parse(text);
+
+    if (!res.ok) {
+      console.error("API ERROR:", data);
+      throw new Error(data.message || "Request failed");
+    }
+
+    return data;
+  } catch {
+    console.error("NON-JSON RESPONSE:", text);
+    throw new Error("Server returned invalid response (not JSON)");
+  }
 };
 
 /* ================================
@@ -28,17 +50,13 @@ export interface Billboard {
   category?: string;
   price?: number;
   status?: "pending" | "approved" | "rejected";
-  videoUrl?: string;
-  additionalImages?: string[];
   owner?: {
     id: number;
     name: string;
     email: string;
   };
   image?: string;
-  imageUrl?: string;
-
-  rejection_reason?: string; // ✅ ADD THIS
+  rejection_reason?: string;
 }
 
 /* ================================
@@ -46,274 +64,150 @@ export interface Billboard {
 ================================ */
 
 export const login = async (data: any) => {
-  const res = await fetch(`${API_URL}/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  const result = await res.json();
-
-  console.log("LOGIN RESPONSE:", result); // 👈 ADD THIS
-
-  if (!res.ok) throw new Error(result.message || "Login failed");
-
-  // ✅ SAVE TOKEN
-  localStorage.setItem("token", result.token);
-
-  return result;
-};
-
-export const register = async (data: any) => {
-  const res = await fetch(`${API_URL}/register`, {
+  const result = await safeFetch(`${API_URL}/login`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify(data),
   });
 
-  const result = await res.json();
-
-  if (!res.ok) throw new Error(result.message || "Register failed");
-
+  localStorage.setItem("token", result.token);
   return result;
+};
+
+export const register = async (data: any) => {
+  return safeFetch(`${API_URL}/register`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
 };
 
 /* ================================
    BILLBOARDS
 ================================ */
 
-// ✅ GET ALL
 export const getBillboards = async (): Promise<Billboard[]> => {
-  const res = await fetch(`${API_URL}/billboards`);
-  if (!res.ok) throw new Error("Failed to fetch billboards");
-  return res.json();
-};
-
-// ✅ GET ONE
-export const getBillboardById = async (id: number) => {
-  const res = await fetch(`${API_URL}/billboards/${id}`);
-  if (!res.ok) throw new Error("Failed to fetch billboard");
-  return res.json();
-};
-
-// ✅ CREATE (FormData for image/video)
-export const createBillboard = async (data: FormData) => {
-  const res = await fetch(`${API_URL}/billboards`, {
-    method: "POST",
-    headers: {
-      ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
-    }, // ❗ NO Content-Type (browser sets it)
-    body: data,
+  return safeFetch(`${API_URL}/billboards`, {
+    headers: getHeaders(false),
   });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.message || "Create failed");
-
-  return result;
 };
 
-// ✅ UPDATE
-export const updateBillboard = async (id: number, data: FormData) => {
-  data.append("_method", "PUT"); // Laravel trick
+export const getBillboardById = async (id: number) => {
+  return safeFetch(`${API_URL}/billboards/${id}`, {
+    headers: getHeaders(false),
+  });
+};
 
-  const res = await fetch(`${API_URL}/billboards/${id}`, {
+export const createBillboard = async (data: FormData) => {
+  return safeFetch(`${API_URL}/billboards`, {
     method: "POST",
     headers: {
       ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
     },
     body: data,
   });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.message || "Update failed");
-
-  return result;
 };
 
-// ✅ DELETE
+export const updateBillboard = async (id: number, data: FormData) => {
+  data.append("_method", "PUT");
+
+  return safeFetch(`${API_URL}/billboards/${id}`, {
+    method: "POST",
+    headers: {
+      ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+    },
+    body: data,
+  });
+};
+
 export const deleteBillboard = async (id: number) => {
-  const res = await fetch(`${API_URL}/billboards/${id}`, {
+  return safeFetch(`${API_URL}/billboards/${id}`, {
     method: "DELETE",
     headers: getHeaders(false),
   });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.message || "Delete failed");
-
-  return result;
 };
 
-// ✅ APPROVE
 export const approveBillboard = async (id: number) => {
-  const res = await fetch(`${API_URL}/billboards/${id}/approve`, {
+  return safeFetch(`${API_URL}/billboards/${id}/approve`, {
     method: "POST",
     headers: getHeaders(false),
   });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.message || "Approve failed");
-
-  return result;
 };
 
-// ✅ REJECT
 export const rejectBillboard = async (id: number, message: string) => {
-  const res = await fetch(`${API_URL}/billboards/${id}/reject`, {
+  return safeFetch(`${API_URL}/billboards/${id}/reject`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({ message }),
   });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.message || "Reject failed");
-
-  return result;
 };
 
 /* ================================
    BOOKINGS
 ================================ */
 
-export const getBookedDates = async (id: number) => {
-  const res = await fetch(`${API_URL}/billboards/${id}/bookings`);
-  if (!res.ok) throw new Error("Failed to fetch dates");
-  return res.json();
-};
-
 export const createBooking = async (id: number, data: any) => {
-  console.log("TOKEN:", localStorage.getItem("token")); // 👈 ADD HERE
-
-  const res = await fetch(`${API_URL}/bookings/${id}`, {
+  return safeFetch(`${API_URL}/bookings/${id}`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify(data),
   });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.message || "Booking failed");
-
-  return result;
 };
 
 export const getMyBookings = async () => {
-  const res = await fetch(`${API_URL}/my-bookings`, {
+  return safeFetch(`${API_URL}/my-bookings`, {
     headers: getHeaders(),
   });
-
-  return res.json();
-};
-
-export const getAdminBookings = async () => {
-  const res = await fetch(`${API_URL}/admin/bookings`, {
-    headers: getHeaders(),
-  });
-
-  return res.json();
-};
-
-export const approveBooking = async (id: number) => {
-  const res = await fetch(`${API_URL}/admin/bookings/${id}/approve`, {
-    method: "POST",
-    headers: getHeaders(),
-  });
-
-  return res.json();
 };
 
 /* ================================
    DASHBOARD
 ================================ */
 
-export async function getDashboardStats() {
-  const res = await fetch(`${API_URL}/admin/dashboard`);
-  return res.json();
-}
-
 export async function getOwnerDashboard() {
-  try {
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(`${API_URL}/owner/dashboard`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("RAW ERROR:", text);
-      throw new Error("Request failed");
-    }
-
-    return res.json();
-  } catch (err) {
-    console.error("FETCH ERROR:", err);
-    throw err;
-  }
+  return safeFetch(`${API_URL}/owner/dashboard`, {
+    headers: getHeaders(false),
+  });
 }
 
 /* ================================
-   ADMIN (FIX MISSING EXPORTS)
+   NOTIFICATIONS (🔥 FIXED)
 ================================ */
 
-export async function getAdmins() {
-  const res = await fetch(`${API_URL}/admins`, {
-    headers: getHeaders(),
-  });
-  return res.json();
-}
-
-export async function createAdmin(data: any) {
-  const res = await fetch(`${API_URL}/admins`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-export async function deleteAdmin(id: string) {
-  await fetch(`${API_URL}/admins/${id}`, {
-    method: "DELETE",
-    headers: getHeaders(),
+export async function getNotifications() {
+  return safeFetch(`${API_URL}/notifications`, {
+    headers: getHeaders(false),
   });
 }
 
-export async function getBookings() {
-  const res = await fetch(`${API_URL}/bookings`);
-  return res.json();
-}
+/* ================================
+   MESSENGER (FIXED)
+================================ */
 
-// ---------------- MESSENGER ----------------
 export async function getConversations() {
-  const res = await fetch(`${API_URL}/conversations`);
-  return res.json();
+  return safeFetch(`${API_URL}/conversations`, {
+    headers: getHeaders(false),
+  });
 }
 
 export async function getMessages(conversationId: number) {
-  const res = await fetch(
+  return safeFetch(
     `${API_URL}/conversations/${conversationId}/messages`,
+    {
+      headers: getHeaders(false),
+    }
   );
-  return res.json();
 }
 
 export async function sendMessage(data: {
   conversation_id: number;
   message: string;
 }) {
-  const res = await fetch(`${API_URL}/messages`, {
+  return safeFetch(`${API_URL}/messages`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getHeaders(),
     body: JSON.stringify(data),
   });
-
-  return res.json();
 }
 
 /* ================================

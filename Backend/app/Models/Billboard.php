@@ -11,17 +11,18 @@ protected $fillable = [
     'title',
     'location',
     'description',
-    'image',
+    'type',
+    'category', // ✅ ADD THIS
+    'price',
     'screen_size',
     'duration',
-    'price',
-    'type',
+    'image',
     'status',
-    'rejection_reason'
 ];
 
     protected $casts = [
         'is_available' => 'boolean',
+        'category' => 'string',
     ];
 
     // ✅ RELATIONSHIPS

@@ -10,38 +10,50 @@ use App\Events\NewNotification;
 class BillboardController extends Controller
 {
     /**
-     * Public: approved only. Owner (auth): own listings (any status).
+     * PUBLIC / OWNER VIEW
      */
     public function index(Request $request)
     {
         $user = $request->user('sanctum');
 
-        if ($user && $user->isOwner() && $request->query('mine') === '1') {
+        // Owner sees their own billboards
+        if ($user && $user->role === 'owner' && $request->query('mine') === '1') {
             return Billboard::with('owner:id,name,email')
                 ->where('owner_id', $user->id)
                 ->latest()
                 ->get();
         }
 
+        // Public sees only approved
         return Billboard::with('owner:id,name,email')
             ->where('status', 'approved')
             ->latest()
             ->get();
     }
 
+    /**
+     * ADMIN VIEW
+     */
     public function adminIndex()
     {
         return Billboard::latest()->get();
     }
 
+    /**
+     * SHOW ONE
+     */
     public function show(Request $request, $id)
     {
         $billboard = Billboard::with('owner:id,name,email')->findOrFail($id);
         $user = $request->user('sanctum');
 
         if ($billboard->status !== 'approved') {
-            $allowed = $user && ($user->isAdmin() || (int) $user->id === (int) $billboard->owner_id);
-            if (! $allowed) {
+            $allowed = $user && (
+                $user->role === 'admin' ||
+                $user->id == $billboard->owner_id
+            );
+
+            if (!$allowed) {
                 abort(404);
             }
         }
@@ -49,6 +61,9 @@ class BillboardController extends Controller
         return $billboard;
     }
 
+    /**
+     * CREATE BILLBOARD (OWNER)
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -56,22 +71,25 @@ class BillboardController extends Controller
             'location' => 'required|string|max:255',
             'description' => 'required|string',
             'type' => 'required|string|max:64',
+
+            // ✅ NEW CATEGORY FIELD
+            'category' => 'required|in:digital,static,smart,premium',
+
             'price' => 'required|numeric|min:0',
             'screen_size' => 'nullable|string|max:255',
             'duration' => 'nullable|string|max:255',
             'media' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:51200',
-            'owner_id' => auth()->id(), // 🔥 IMPORTANT
-            'status' => 'pending'
         ]);
 
         $path = $request->file('media')->store('billboards', 'public');
 
         $billboard = Billboard::create([
-            'owner_id' => $request->user()->id,
+            'owner_id' => $request->user()->id, // ✅ FIXED
             'title' => $request->title,
             'location' => $request->location,
             'description' => $request->description,
             'type' => $request->type,
+            'category' => $request->category, // ✅ NEW
             'price' => $request->price,
             'screen_size' => $request->screen_size,
             'duration' => $request->duration,
@@ -79,33 +97,57 @@ class BillboardController extends Controller
             'status' => 'pending',
         ]);
 
-        return response()->json($billboard->load('owner:id,name,email'), 201);
+        return response()->json(
+            $billboard->load('owner:id,name,email'),
+            201
+        );
     }
 
+    /**
+     * UPDATE
+     */
     public function update(Request $request, $id)
     {
         $billboard = Billboard::findOrFail($id);
 
-        if ($request->user()->id !== (int) $billboard->owner_id && ! $request->user()->isAdmin()) {
+        if (
+            $request->user()->id !== $billboard->owner_id &&
+            $request->user()->role !== 'admin'
+        ) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'location' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+            'type' => 'sometimes|string|max:64',
+            'category' => 'sometimes|in:digital,static,smart,premium',
+            'price' => 'sometimes|numeric|min:0',
+        ]);
+
         $billboard->update([
             ...$request->except(['owner_id', 'status']),
-            'status' => 'pending',
+            'status' => 'pending', // 🔁 re-review
         ]);
 
         return response()->json([
-            'message' => 'Updated and sent for re-approval',
+            'message' => 'Updated and sent for approval',
             'data' => $billboard,
         ]);
     }
 
+    /**
+     * DELETE
+     */
     public function destroy(Request $request, $id)
     {
         $billboard = Billboard::findOrFail($id);
 
-        if ($request->user()->id !== (int) $billboard->owner_id && ! $request->user()->isAdmin()) {
+        if (
+            $request->user()->id !== $billboard->owner_id &&
+            $request->user()->role !== 'admin'
+        ) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -116,6 +158,9 @@ class BillboardController extends Controller
         ]);
     }
 
+    /**
+     * APPROVE
+     */
     public function approve($id)
     {
         $billboard = Billboard::findOrFail($id);
@@ -139,6 +184,9 @@ class BillboardController extends Controller
         ]);
     }
 
+    /**
+     * REJECT
+     */
     public function reject(Request $request, $id)
     {
         $billboard = Billboard::findOrFail($id);
@@ -165,6 +213,9 @@ class BillboardController extends Controller
         ]);
     }
 
+    /**
+     * PENDING
+     */
     public function pending()
     {
         return Billboard::where('status', 'pending')->latest()->get();
