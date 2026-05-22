@@ -49,42 +49,43 @@ class AuthController extends Controller
     }
 
     // ✅ LOGIN
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
+   // ✅ LOGIN
+public function login(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required'
+    ]);
 
-        $user = User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
-        // ❌ INVALID LOGIN
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'Invalid credentials'
-            ], 401);
-        }
-
-        // 🚫 BLOCK OWNER IF LICENSE NOT APPROVED
-        if ($user->role === 'owner' && $user->license_status !== 'approved') {
-            return response()->json([
-                'message' => 'Your license is not approved yet. Please wait for admin approval.'
-            ], 403);
-        }
-
-        // ✅ DELETE OLD TOKENS
-        $user->tokens()->delete();
-
-        // ✅ CREATE NEW TOKEN
-        $token = $user->createToken('auth_token')->plainTextToken;
-
+    // ❌ INVALID LOGIN
+    if (!$user || !Hash::check($request->password, $user->password)) {
         return response()->json([
-            'message' => 'Login successful',
-            'token' => $token,
-            'user' => $user
-        ], 200);
+            'message' => 'Invalid credentials'
+        ], 401);
     }
 
+    // ⚠️ OWNER NOT APPROVED (ALLOW LOGIN BUT WARN)
+    $warning = null;
+
+    if ($user->role === 'owner' && $user->license_status !== 'approved') {
+        $warning = 'Your license is not approved yet. Some features are disabled.';
+    }
+
+    // ✅ DELETE OLD TOKENS
+    $user->tokens()->delete();
+
+    // ✅ CREATE NEW TOKEN
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    return response()->json([
+        'message' => 'Login successful',
+        'token' => $token,
+        'user' => $user,
+        'warning' => $warning // 👈 IMPORTANT
+    ], 200);
+}
     // ✅ LOGOUT
     public function logout(Request $request)
     {

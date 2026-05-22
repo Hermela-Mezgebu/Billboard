@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -23,22 +22,21 @@ class NewNotification implements ShouldBroadcast
     }
 
     /**
-     * ✅ CHANNEL (VERY IMPORTANT)
+     * ✅ PUBLIC CHANNEL (FIXED)
      */
     public function broadcastOn(): array
     {
         return [
-            // each owner listens to their own notifications
-            new PrivateChannel('notifications.' . $this->notification->owner_id),
+            new Channel('notifications'), // 🔥 simple & matches frontend
         ];
     }
 
     /**
-     * ✅ EVENT NAME (clean for frontend)
+     * ✅ EVENT NAME (MATCH FRONTEND)
      */
     public function broadcastAs()
     {
-        return 'notification.new';
+        return 'new.notification';
     }
 
     /**
@@ -50,7 +48,8 @@ class NewNotification implements ShouldBroadcast
             'id' => $this->notification->id,
             'message' => $this->notification->message,
             'type' => $this->notification->type,
-            'time' => $this->notification->created_at->diffForHumans(),
+            'is_read' => $this->notification->is_read,
+            'created_at' => $this->notification->created_at,
         ];
     }
 }

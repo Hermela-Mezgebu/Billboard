@@ -37,10 +37,9 @@ export default function Billboards() {
     title: b.title,
     location: b.location,
     image:
-      b.image ||
-      b.image_url ||
-      (Array.isArray(b.images) ? b.images[0] : "") ||
-      "/placeholder.jpg",
+  b.image
+    ? `http://127.0.0.1:8000/storage/${b.image}`
+    : "/placeholder.jpg",
     description: b.description || "",
     screenSize: b.type || "",
     status: b.status || "pending",

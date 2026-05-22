@@ -64,44 +64,34 @@ class BillboardController extends Controller
     /**
      * CREATE BILLBOARD (OWNER)
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'description' => 'required|string',
-            'type' => 'required|string|max:64',
+public function store(Request $request)
+{
+    $request->validate([
+        'title' => 'required',
+        'location' => 'required',
+        'description' => 'required',
+        'type' => 'required',
+        'screen_size' => 'required',
+        'price' => 'required',
+        'media' => 'required|image' // 👈 match frontend
+    ]);
 
-            // ✅ NEW CATEGORY FIELD
-            'category' => 'required|in:digital,static,smart,premium',
+    $path = $request->file('media')->store('billboards', 'public');
 
-            'price' => 'required|numeric|min:0',
-            'screen_size' => 'nullable|string|max:255',
-            'duration' => 'nullable|string|max:255',
-            'media' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:51200',
-        ]);
+    $billboard = Billboard::create([
+        'title' => $request->title,
+        'location' => $request->location,
+        'description' => $request->description,
+        'type' => $request->type,
+        'screen_size' => $request->screen_size,
+        'price' => $request->price,
+        'status' => 'pending',
+        'image' => $path,
+        'owner_id' => $request->user()->id,
+    ]);
 
-        $path = $request->file('media')->store('billboards', 'public');
-
-        $billboard = Billboard::create([
-            'owner_id' => $request->user()->id, // ✅ FIXED
-            'title' => $request->title,
-            'location' => $request->location,
-            'description' => $request->description,
-            'type' => $request->type,
-            'category' => $request->category, // ✅ NEW
-            'price' => $request->price,
-            'screen_size' => $request->screen_size,
-            'duration' => $request->duration,
-            'image' => asset('storage/' . $path),
-            'status' => 'pending',
-        ]);
-
-        return response()->json(
-            $billboard->load('owner:id,name,email'),
-            201
-        );
-    }
+    return response()->json($billboard);
+}
 
     /**
      * UPDATE

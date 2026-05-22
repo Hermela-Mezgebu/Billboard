@@ -14,7 +14,7 @@ import { Analytics } from "@/components/admin/views/Analytics";
 import { ContentManager } from "@/components/admin/views/ContentManager";
 import { SettingsView } from "@/components/admin/views/SettingsView";
 import { AdminUsersView } from "@/components/admin/views/AdminUsersView";
-
+import AdminNotificationsView from "@/components/admin/views/AdminNotificationsView";
 export default function AdminPage() {
   const [activeView, setActiveView] = useState<SubView>("overview");
   const router = useRouter();
@@ -55,7 +55,8 @@ export default function AdminPage() {
 
         {/* USERS */}
         {activeView === "operators" && <AdminUsersView />}
-
+        
+        <AdminNotificationsView />
       </div>
     </div>
   );

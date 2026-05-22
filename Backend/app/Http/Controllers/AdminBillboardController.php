@@ -36,87 +36,87 @@ class AdminBillboardController extends Controller
     /**
      * ✅ APPROVE BILLBOARD
      */
-    public function approve($id)
-    {
-        DB::beginTransaction();
+  use App\Models\Notification;
+use App\Events\NewNotification;
 
-        try {
-            $billboard = Billboard::findOrFail($id);
+public function approve($id)
+{
+    $billboard = \App\Models\Billboard::findOrFail($id);
 
-            $billboard->status = 'approved';
-            $billboard->save();
+    $billboard->update([
+        'status' => 'approved'
+    ]);
 
-            // 🔔 NOTIFICATION
-            if ($billboard->owner_id) {
-                Notification::create([
-                    'owner_id' => $billboard->owner_id,
-                    'message' => '✅ Your billboard has been approved',
-                    'type' => 'approval',
-                ]);
-            }
+    // ✅ CREATE NOTIFICATION
+    $notification = Notification::create([
+        'owner_id' => $billboard->owner_id,
+        'message' => '🎉 Your billboard has been approved!',
+        'type' => 'billboard',
+        'is_read' => 0,
+    ]);
 
-            DB::commit();
+    // ✅ FIRE EVENT (🔥 THIS WAS MISSING)
+    event(new NewNotification($notification));
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Billboard approved successfully',
-                'data' => $billboard
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Approval failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+    return response()->json([
+        'message' => 'Billboard approved'
+    ]);
+}
 
     /**
      * ❌ REJECT BILLBOARD
      */
-    public function reject(Request $request, $id)
-    {
-        DB::beginTransaction();
+  public function reject(Request $request, $id)
+{
+    $billboard = \App\Models\Billboard::findOrFail($id);
 
-        try {
-            $request->validate([
-                'message' => 'nullable|string|max:255',
-            ]);
+    $billboard->update([
+        'status' => 'rejected',
+        'rejection_reason' => $request->message
+    ]);
 
-            $billboard = Billboard::findOrFail($id);
+    // ✅ CREATE NOTIFICATION
+    $notification = Notification::create([
+        'owner_id' => $billboard->owner_id,
+        'message' => '❌ Your billboard was rejected: ' . $request->message,
+        'type' => 'billboard',
+        'is_read' => 0,
+    ]);
 
-            $reason = $request->message ?? '❌ Your billboard was rejected';
+    // ✅ FIRE EVENT
+    event(new NewNotification($notification));
 
-            $billboard->status = 'rejected';
-            $billboard->rejection_reason = $reason;
-            $billboard->save();
+    return response()->json([
+        'message' => 'Billboard rejected'
+    ]);
+}
 
-            // 🔔 NOTIFICATION
-            if ($billboard->owner_id) {
-                Notification::create([
-                    'owner_id' => $billboard->owner_id,
-                    'message' => $reason,
-                    'type' => 'rejection',
-                ]);
-            }
+use App\Models\Notification;
+use App\Events\NewNotification;
+use App\Models\User;
 
-            DB::commit();
+public function store(Request $request)
+{
+    $billboard = Billboard::create([
+        // your fields...
+        'owner_id' => auth()->id(),
+        'status' => 'pending',
+    ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Billboard rejected successfully',
-                'data' => $billboard
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
+    // ✅ SEND TO ADMIN
+    $admins = User::where('role', 'admin')->get();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Rejection failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    foreach ($admins as $admin) {
+        $notification = Notification::create([
+            'owner_id' => $admin->id,
+            'message' => '📢 New billboard submitted for approval',
+            'type' => 'admin',
+            'is_read' => 0,
+        ]);
+
+        event(new NewNotification($notification));
     }
+
+    return response()->json($billboard);
+}
 }

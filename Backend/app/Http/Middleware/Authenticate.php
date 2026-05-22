@@ -1,15 +1,13 @@
 <?php
+
 namespace App\Http\Middleware;
 
-use Closure;
-use Illuminate\Http\Request;
+use Illuminate\Auth\Middleware\Authenticate as Middleware;
 
-class AuthenticateMiddleware
+class Authenticate extends Middleware
 {
-
-protected function redirectTo($request)
-{
-    return null; // 🔥 STOP Laravel from redirecting
-}
-
+    protected function redirectTo($request)
+    {
+        return null;
+    }
 }

@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = "http://localhost:8000/api";
 
 /* ================================
    HELPERS
@@ -46,7 +46,6 @@ export interface Billboard {
   id: number;
   title?: string;
   location?: string;
-  neighborhood?: string;
   category?: string;
   price?: number;
   status?: "pending" | "approved" | "rejected";
@@ -71,6 +70,8 @@ export const login = async (data: any) => {
   });
 
   localStorage.setItem("token", result.token);
+  localStorage.setItem("user", JSON.stringify(result.user)); // ✅ IMPORTANT
+
   return result;
 };
 
@@ -97,12 +98,11 @@ export const getBillboardById = async (id: number) => {
     headers: getHeaders(false),
   });
 };
-
 export const createBillboard = async (data: FormData) => {
   return safeFetch(`${API_URL}/billboards`, {
     method: "POST",
     headers: {
-      ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+      Authorization: `Bearer ${getToken()}`, // ✅ REQUIRED
     },
     body: data,
   });
@@ -127,15 +127,19 @@ export const deleteBillboard = async (id: number) => {
   });
 };
 
+/* ================================
+   ADMIN BILLBOARD (🔥 FIXED ROUTES)
+================================ */
+
 export const approveBillboard = async (id: number) => {
-  return safeFetch(`${API_URL}/billboards/${id}/approve`, {
+  return safeFetch(`${API_URL}/admin/billboards/${id}/approve`, {
     method: "POST",
     headers: getHeaders(false),
   });
 };
 
 export const rejectBillboard = async (id: number, message: string) => {
-  return safeFetch(`${API_URL}/billboards/${id}/reject`, {
+  return safeFetch(`${API_URL}/admin/billboards/${id}/reject`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({ message }),
@@ -166,27 +170,33 @@ export const getMyBookings = async () => {
 
 export async function getOwnerDashboard() {
   return safeFetch(`${API_URL}/owner/dashboard`, {
-    headers: getHeaders(false),
+    headers: getHeaders(), // ✅ FIXED
+  });
+}
+
+export async function getDashboardStats() {
+  return safeFetch(`${API_URL}/admin/dashboard`, {
+    headers: getHeaders(),
   });
 }
 
 /* ================================
-   NOTIFICATIONS (🔥 FIXED)
+   NOTIFICATIONS
 ================================ */
 
 export async function getNotifications() {
   return safeFetch(`${API_URL}/notifications`, {
-    headers: getHeaders(false),
+    headers: getHeaders(),
   });
 }
 
 /* ================================
-   MESSENGER (FIXED)
+   MESSENGER
 ================================ */
 
 export async function getConversations() {
   return safeFetch(`${API_URL}/conversations`, {
-    headers: getHeaders(false),
+    headers: getHeaders(),
   });
 }
 
@@ -194,7 +204,7 @@ export async function getMessages(conversationId: number) {
   return safeFetch(
     `${API_URL}/conversations/${conversationId}/messages`,
     {
-      headers: getHeaders(false),
+      headers: getHeaders(),
     }
   );
 }
@@ -267,10 +277,63 @@ export async function updateSubmissionStatus(id: string, status: string) {
    ADMIN (FIX MISSING EXPORTS)
 ================================ */
 
+/* ================================
+   ADMIN USERS (🔥 FIX)
+================================ */
+
+export async function getAdmins() {
+  return safeFetch(`${API_URL}/admins`, {
+    headers: getHeaders(),
+  });
+}
+
+export async function createAdmin(data: any) {
+  return safeFetch(`${API_URL}/admins`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteAdmin(id: string) {
+  return safeFetch(`${API_URL}/admins/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+}
+
 export async function toggleAdminStatus(id: string) {
-  const res = await fetch(`${API_URL}/admins/toggle/${id}`, {
+  return safeFetch(`${API_URL}/admins/toggle/${id}`, {
     method: "PATCH",
     headers: getHeaders(),
   });
-  return res.json();
 }
+
+/* ================================
+   ADMIN BOOKINGS (🔥 FIX)
+================================ */
+
+export async function getBookings() {
+  return safeFetch(`${API_URL}/admin/bookings`, {
+    headers: getHeaders(),
+  });
+}
+
+
+export const getUnreadCount = () =>
+  safeFetch(`${API_URL}/notifications/unread-count`, {
+    headers: getHeaders(false),
+  });
+
+export const markAsRead = (id: number) =>
+  safeFetch(`${API_URL}/notifications/${id}/read`, {
+    method: "POST",
+    headers: getHeaders(false),
+  });
+
+export const markAllAsRead = () =>
+  safeFetch(`${API_URL}/notifications/read-all`, {
+    method: "POST",
+    headers: getHeaders(false),
+  });
+

@@ -104,11 +104,15 @@ export function AuthModal({
       }
 
       // ✅ ROLE BASED REDIRECT
-      if (selectedRole === "owner") {
-        window.location.href = "/owner";
-      } else {
-        window.location.href = "/client";
-      }
+     const role = data.user.role;
+
+if (role === "admin") {
+  window.location.href = "/admin";
+} else if (role === "owner") {
+  window.location.href = "/owner";
+} else {
+  window.location.href = "/client";
+}
     } catch (err: any) {
       setError(err.message);
     } finally {
