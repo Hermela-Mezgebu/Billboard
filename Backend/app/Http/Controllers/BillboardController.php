@@ -9,32 +9,43 @@ use App\Events\NewNotification;
 
 class BillboardController extends Controller
 {
-   public function index(Request $request)
-{
-    $user = $request->user('sanctum');
-
-    // ✅ OWNER VIEW (their own billboards)
-    if ($user && $user->role === 'owner' && $request->query('mine') === '1') {
-        return Billboard::where('owner_id', $user->id)
-            ->latest()
-            ->get();
-    }
-
-    // ✅ FILTER BY STATUS (🔥 THIS FIXES YOUR ERROR)
-    if ($request->has('status')) {
-        return Billboard::where('status', $request->status)
-            ->latest()
-            ->get();
-    }
-
-    // ✅ DEFAULT → only approved
-    return Billboard::where('status', 'approved')
-        ->latest()
-        ->get();
-}
-
-    public function adminIndex()
+  public function index(Request $request)
     {
+        $user = $request->user('sanctum');
+
+        $query = Billboard::query();
+
+        // ✅ OWNER: only their billboards
+        if ($user && $user->role === 'owner' && $request->query('mine') === '1') {
+            $query->where('owner_id', $user->id);
+        }
+
+        // ✅ FILTER BY STATUS (admin OR general use)
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // ✅ DEFAULT: if NO filters → only approved (public view)
+        if (!$request->has('status') && $request->query('mine') !== '1') {
+            $query->where('status', 'approved');
+        }
+
+        return $query->latest()->get();
+    }
+
+    /**
+     * GET /api/admin/billboards
+     * (Optional: full admin access)
+     */
+    public function adminIndex(Request $request)
+    {
+        $user = $request->user('sanctum');
+
+        // 🔒 SECURITY: only admin allowed
+        if (!$user || $user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         return Billboard::latest()->get();
     }
 

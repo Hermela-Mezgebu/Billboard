@@ -91,8 +91,22 @@ export const safeFetch = async (url: string, options: any = {}) => {
 };
 
 // ✅ GET BILLBOARDS
-export const getBillboards = async () => {
-  return safeFetch(`${API_URL}/billboards?mine=1`, {
+export const getBillboards = async (params?: {
+  mine?: boolean;
+  status?: string;
+}) => {
+  let url = `${API_URL}/billboards`;
+
+  const query = [];
+
+  if (params?.mine) query.push("mine=1");
+  if (params?.status) query.push(`status=${params.status}`);
+
+  if (query.length > 0) {
+    url += `?${query.join("&")}`;
+  }
+
+  return safeFetch(url, {
     headers: getHeaders(false),
   });
 };

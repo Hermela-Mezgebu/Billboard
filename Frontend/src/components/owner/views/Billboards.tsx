@@ -46,7 +46,7 @@ export default function Billboards() {
 
   const loadBillboards = useCallback(async () => {
     try {
-      const res = await getBillboards();
+      const res = await getBillboards({ mine: true });
 
       if (!Array.isArray(res)) {
         setList([]);
