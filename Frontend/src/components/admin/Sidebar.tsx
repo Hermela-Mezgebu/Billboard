@@ -24,6 +24,7 @@ export type SubView =
   | "messenger"
   | "content"
   | "operators"
+  | "adminUsers"   // ✅ FIX: added separate state
   | "settings";
 
 interface SidebarProps {
@@ -141,19 +142,21 @@ export default function Sidebar({
                 active={activeView === "operators"}
                 onClick={() => setActiveView("operators")}
               />
+
+              {/* ✅ FIXED: separate admin users */}
+              <NavItem
+                icon={<Users size={18} />}
+                label="Admin Users"
+                active={activeView === "adminUsers"}
+                onClick={() => setActiveView("adminUsers")}
+              />
+
               <NavItem
                 icon={<Settings size={18} />}
                 label="Settings"
                 active={activeView === "settings"}
                 onClick={() => setActiveView("settings")}
               />
-
-              <NavItem
-  active={activeView === 'operators'}
-  onClick={() => setActiveView('operators')}
-  icon={<Users size={18} />}
-  label="Admin Users"
-/>
             </NavSection>
           </div>
 
