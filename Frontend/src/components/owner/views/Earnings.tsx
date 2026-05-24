@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign,
@@ -41,21 +41,54 @@ type Transaction = {
 
 export default function Earnings() {
 
-  /* MOCK → replace with API later */
-  const transactions: Transaction[] = [
-    { id: 'PAY-1102', billboard: 'Bole Road Hub', amount: '$4,500', method: 'Bank Transfer', status: 'Completed', date: 'May 02, 2026' },
-    { id: 'PAY-1101', billboard: 'Piyasa Plaza', amount: '$1,200', method: 'Digital Wallet', status: 'Processing', date: 'April 28, 2026' },
-    { id: 'PAY-1099', billboard: 'Kazanchis Wall', amount: '$12,400', method: 'Bank Transfer', status: 'Completed', date: 'April 15, 2026' },
-  ];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [chartData, setChartData] = useState<ChartItem[]>([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  const chartData: ChartItem[] = [
-    { month: 'Jan', revenue: 4500 },
-    { month: 'Feb', revenue: 5200 },
-    { month: 'Mar', revenue: 4800 },
-    { month: 'Apr', revenue: 6100 },
-    { month: 'May', revenue: 5800 },
-    { month: 'Jun', revenue: 7200 },
-  ];
+  // ✅ FETCH DATA
+  const loadEarnings = useCallback(async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/owner/earnings", {
+        headers: {
+          Accept: "application/json"
+        }
+      });
+
+      const data = await res.json();
+
+      // ✅ SAFE FALLBACKS
+      setTransactions(Array.isArray(data?.transactions) ? data.transactions : []);
+      setChartData(Array.isArray(data?.chart) ? data.chart : []);
+      setBalance(Number(data?.balance ?? 0));
+
+    } catch (err) {
+      console.error("Earnings fetch error:", err);
+
+      // fallback to empty instead of crash
+      setTransactions([]);
+      setChartData([]);
+      setBalance(0);
+
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ✅ AUTO REFRESH FIX
+  useEffect(() => {
+    loadEarnings();
+
+    const handleFocus = () => loadEarnings();
+    window.addEventListener("focus", handleFocus);
+
+    const interval = setInterval(loadEarnings, 15000); // refresh every 15s
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
+  }, [loadEarnings]);
 
   return (
     <motion.div
@@ -94,11 +127,11 @@ export default function Earnings() {
             </p>
 
             <h3 className="text-5xl font-black mt-2">
-              $8,420<span className="text-2xl text-indigo-200">.50</span>
+              {loading ? "..." : `$${balance.toLocaleString()}`}
             </h3>
 
             <div className="mt-6 text-xs flex items-center gap-2 text-indigo-100">
-              <Clock size={14} /> Next update in 4h
+              <Clock size={14} /> Live updates
             </div>
 
             <button className="mt-8 w-full py-4 bg-white text-indigo-600 rounded-2xl font-black text-sm uppercase flex items-center justify-center gap-2">
@@ -107,15 +140,15 @@ export default function Earnings() {
             </button>
           </div>
 
-          {/* GOALS */}
+          {/* GOALS (UNCHANGED) */}
           <div className="bg-white dark:bg-brand-card rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow">
             <h3 className="text-sm font-black uppercase mb-6">
               Earnings Goals
             </h3>
 
             <div className="space-y-6">
-              <RevenueGoal label="Bole Hub" target={12000} current={8400} color="bg-indigo-600" />
-              <RevenueGoal label="Piyasa" target={5000} current={1200} color="bg-green-500" />
+              <RevenueGoal label="Bole Hub" target={12000} current={balance} color="bg-indigo-600" />
+              <RevenueGoal label="Piyasa" target={5000} current={balance / 2} color="bg-green-500" />
             </div>
           </div>
         </div>
@@ -128,7 +161,7 @@ export default function Earnings() {
             <div className="flex justify-between mb-6">
               <h3 className="font-black uppercase">Revenue Trends</h3>
               <div className="text-green-500 text-xs flex items-center gap-1">
-                <TrendingUp size={14} /> +12%
+                <TrendingUp size={14} /> Live
               </div>
             </div>
 

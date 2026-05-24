@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import OwnerSidebar, { OwnerSubView  } from "@/components/owner/OwnerSidebar";
+import OwnerSidebar, { OwnerSubView } from "@/components/owner/OwnerSidebar";
 
 import Dashboard from "@/components/owner/views/Dashboard";
 import Billboards from "@/components/owner/views/Billboards";
@@ -19,26 +19,25 @@ export default function OwnerPage() {
     window.location.href = "/login";
   };
 
+  // 🔥 FIX: FORCE REMOUNT WITH KEY
   const renderView = () => {
     switch (activeView) {
       case "overview":
-        return <Dashboard />;
+        return <Dashboard key="overview" />;
       case "billboards":
-        return <Billboards />;
+        return <Billboards key="billboards" />;
       case "submissions":
-        return <Submissions />;
+        return <Submissions key="submissions" />;
       case "orders":
-        return <Orders />;
+        return <Orders key="orders" />;
       case "earnings":
-        return <Earnings />;
+        return <Earnings key="earnings" />;
       case "settings":
-        return <Settings />;
+        return <Settings key="settings" />;
       default:
-        return <Dashboard />;
+        return <Dashboard key="default" />;
     }
   };
-
-  
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-black">

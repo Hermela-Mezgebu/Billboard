@@ -52,73 +52,76 @@ export function AuthModal({
     }
   }, [selectedRole]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
+  try {
+    const url =
+      mode === "signup"
+        ? "http://127.0.0.1:8000/api/register"
+        : "http://127.0.0.1:8000/api/login";
+
+    const body =
+      mode === "signup"
+        ? {
+            name,
+            email,
+            password,
+            role: selectedRole,
+            license_number:
+              selectedRole === "owner" ? licenseNumber : null,
+          }
+        : { email, password };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json", // ✅ VERY IMPORTANT
+      },
+      body: JSON.stringify(body),
+    });
+
+    // ✅ SAFE PARSE (FIXED)
+    const text = await res.text();
+
+    let data;
     try {
-      const url =
-        mode === "signup"
-          ? "http://127.0.0.1:8000/api/register"
-          : "http://127.0.0.1:8000/api/login";
-
-      const body =
-        mode === "signup"
-          ? {
-              name,
-              email,
-              password,
-              role: selectedRole,
-              license_number: selectedRole === "owner" ? licenseNumber : null,
-              
-            }
-          : { email, password };
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      let data;
-
-      try {
-        data = await res.json();
-      } catch {
-        const text = await res.text();
-        console.error("NOT JSON:", text);
-        alert("Server returned invalid response");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed");
-      }
-
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-
-      // ✅ ROLE BASED REDIRECT
-     const role = data.user.role;
-
-if (role === "admin") {
-  window.location.href = "/admin";
-} else if (role === "owner") {
-  window.location.href = "/owner";
-} else {
-  window.location.href = "/client";
-}
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      data = JSON.parse(text);
+    } catch {
+      console.error("NOT JSON:", text);
+      throw new Error("Server returned invalid response");
     }
-  };
+
+    if (!res.ok) {
+      throw new Error(data.message || "Login failed");
+    }
+
+    // ✅ STORE AUTH
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    }
+
+    // ✅ ROLE REDIRECT
+    const role = data.user.role;
+
+    if (role === "admin") {
+      window.location.href = "/admin";
+    } else if (role === "owner") {
+      window.location.href = "/owner";
+    } else {
+      window.location.href = "/client";
+    }
+
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <AnimatePresence>

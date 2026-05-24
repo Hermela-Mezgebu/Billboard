@@ -9,39 +9,35 @@ use App\Events\NewNotification;
 
 class BillboardController extends Controller
 {
-    /**
-     * PUBLIC / OWNER VIEW
-     */
-    public function index(Request $request)
-    {
-        $user = $request->user('sanctum');
+   public function index(Request $request)
+{
+    $user = $request->user('sanctum');
 
-        // Owner sees their own billboards
-        if ($user && $user->role === 'owner' && $request->query('mine') === '1') {
-            return Billboard::with('owner:id,name,email')
-                ->where('owner_id', $user->id)
-                ->latest()
-                ->get();
-        }
-
-        // Public sees only approved
-        return Billboard::with('owner:id,name,email')
-            ->where('status', 'approved')
+    // ✅ OWNER VIEW (their own billboards)
+    if ($user && $user->role === 'owner' && $request->query('mine') === '1') {
+        return Billboard::where('owner_id', $user->id)
             ->latest()
             ->get();
     }
 
-    /**
-     * ADMIN VIEW
-     */
+    // ✅ FILTER BY STATUS (🔥 THIS FIXES YOUR ERROR)
+    if ($request->has('status')) {
+        return Billboard::where('status', $request->status)
+            ->latest()
+            ->get();
+    }
+
+    // ✅ DEFAULT → only approved
+    return Billboard::where('status', 'approved')
+        ->latest()
+        ->get();
+}
+
     public function adminIndex()
     {
         return Billboard::latest()->get();
     }
 
-    /**
-     * SHOW ONE
-     */
     public function show(Request $request, $id)
     {
         $billboard = Billboard::with('owner:id,name,email')->findOrFail($id);
@@ -61,9 +57,6 @@ class BillboardController extends Controller
         return $billboard;
     }
 
-    /**
-     * CREATE BILLBOARD (OWNER)
-     */
 public function store(Request $request)
 {
     $request->validate([
@@ -73,7 +66,7 @@ public function store(Request $request)
         'type' => 'required',
         'screen_size' => 'required',
         'price' => 'required',
-        'media' => 'required|image' // 👈 match frontend
+        'media' => 'required|image'
     ]);
 
     $path = $request->file('media')->store('billboards', 'public');
@@ -90,12 +83,22 @@ public function store(Request $request)
         'owner_id' => $request->user()->id,
     ]);
 
+    // 🔥 ✅ SEND NOTIFICATION TO ADMIN
+    $admins = \App\Models\User::where('role', 'admin')->get();
+
+    foreach ($admins as $admin) {
+        $notification = Notification::create([
+            'owner_id' => $admin->id, // admin receives it
+            'message' => '📢 New billboard submitted: ' . $billboard->title,
+            'type' => 'submission',
+        ]);
+
+        event(new NewNotification($notification));
+    }
+
     return response()->json($billboard);
 }
 
-    /**
-     * UPDATE
-     */
     public function update(Request $request, $id)
     {
         $billboard = Billboard::findOrFail($id);
@@ -107,18 +110,9 @@ public function store(Request $request)
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'location' => 'sometimes|string|max:255',
-            'description' => 'sometimes|string',
-            'type' => 'sometimes|string|max:64',
-            'category' => 'sometimes|in:digital,static,smart,premium',
-            'price' => 'sometimes|numeric|min:0',
-        ]);
-
         $billboard->update([
             ...$request->except(['owner_id', 'status']),
-            'status' => 'pending', // 🔁 re-review
+            'status' => 'pending',
         ]);
 
         return response()->json([
@@ -127,9 +121,6 @@ public function store(Request $request)
         ]);
     }
 
-    /**
-     * DELETE
-     */
     public function destroy(Request $request, $id)
     {
         $billboard = Billboard::findOrFail($id);
@@ -149,63 +140,70 @@ public function store(Request $request)
     }
 
     /**
-     * APPROVE
+     * ✅ APPROVE (FIXED)
      */
-    public function approve($id)
-    {
-        $billboard = Billboard::findOrFail($id);
+  public function approve($id)
+{
+    $billboard = Billboard::findOrFail($id);
 
-        $billboard->update([
-            'status' => 'approved',
-        ]);
+    $billboard->update([
+        'status' => 'approved',
+    ]);
 
-        if ($billboard->owner_id) {
-            $notification = Notification::create([
-                'owner_id' => $billboard->owner_id,
-                'message' => '✅ Your billboard has been approved',
-                'type' => 'approval',
-            ]);
-
-            event(new NewNotification($notification));
-        }
-
+    // 🔥 DEBUG (optional - you can remove later)
+    if (!$billboard->owner_id) {
         return response()->json([
-            'message' => 'Billboard approved successfully',
-        ]);
+            'error' => 'owner_id is NULL — cannot send notification'
+        ], 500);
     }
 
+    // ✅ ALWAYS CREATE NOTIFICATION
+    $notification = Notification::create([
+        'owner_id' => $billboard->owner_id,
+        'message' => '✅ Your billboard "' . $billboard->title . '" has been approved',
+        'type' => 'approval',
+    ]);
+
+    event(new NewNotification($notification));
+
+    return response()->json([
+        'message' => 'Billboard approved + notification sent',
+    ]);
+}
+
     /**
-     * REJECT
+     * ✅ REJECT (FIXED)
      */
-    public function reject(Request $request, $id)
-    {
-        $billboard = Billboard::findOrFail($id);
+public function reject(Request $request, $id)
+{
+    $billboard = Billboard::findOrFail($id);
 
-        $message = $request->input('message', 'Your billboard was rejected');
+    $message = $request->input('message', 'Your billboard was rejected');
 
-        $billboard->update([
-            'status' => 'rejected',
-            'rejection_reason' => $message,
-        ]);
+    $billboard->update([
+        'status' => 'rejected',
+        'rejection_reason' => $message,
+    ]);
 
-        if ($billboard->owner_id) {
-            $notification = Notification::create([
-                'owner_id' => $billboard->owner_id,
-                'message' => '❌ ' . $message,
-                'type' => 'rejection',
-            ]);
-
-            event(new NewNotification($notification));
-        }
-
+    if (!$billboard->owner_id) {
         return response()->json([
-            'message' => 'Billboard rejected',
-        ]);
+            'error' => 'owner_id is NULL — cannot send notification'
+        ], 500);
     }
 
-    /**
-     * PENDING
-     */
+    $notification = Notification::create([
+        'owner_id' => $billboard->owner_id,
+        'message' => '❌ ' . $message,
+        'type' => 'rejection',
+    ]);
+
+    event(new NewNotification($notification));
+
+    return response()->json([
+        'message' => 'Billboard rejected + notification sent',
+    ]);
+}
+
     public function pending()
     {
         return Billboard::where('status', 'pending')->latest()->get();

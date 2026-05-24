@@ -26,7 +26,15 @@ type Section = {
 /* ✅ API CALL */
 async function getOwnerSettings() {
   try {
-    const res = await fetch("/api/owner/settings"); // 🔁 replace with Laravel endpoint
+    const res = await fetch("http://127.0.0.1:8000/api/owner/settings", {
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store", // 🔥 IMPORTANT (no stale data)
+    });
+
+    if (!res.ok) return null;
+
     return await res.json();
   } catch (err) {
     console.error("Settings fetch error:", err);
@@ -35,13 +43,14 @@ async function getOwnerSettings() {
 }
 
 export default function Settings() {
-
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ✅ FETCH REAL DATA */
-  useEffect(() => {
-    async function load() {
+  /* ✅ LOAD FUNCTION (REUSABLE) */
+  const load = async () => {
+    try {
+      setLoading(true);
+
       const data = await getOwnerSettings();
 
       setSections([
@@ -88,11 +97,24 @@ export default function Settings() {
           status: data?.theme ?? "Default"
         }
       ]);
-
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
     }
+  };
 
+  /* ✅ INITIAL LOAD */
+  useEffect(() => {
     load();
+  }, []);
+
+  /* ✅ 🔥 FIX: REFRESH WHEN USER RETURNS TO PAGE */
+  useEffect(() => {
+    const handleFocus = () => load();
+    window.addEventListener("focus", handleFocus);
+
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   return (

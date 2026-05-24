@@ -17,26 +17,7 @@ const getHeaders = (isJson = true) => {
   };
 };
 
-// ✅ SAFE FETCH (prevents HTML crash)
-const safeFetch = async (url: string, options: any = {}) => {
-  const res = await fetch(url, options);
 
-  const text = await res.text();
-
-  try {
-    const data = JSON.parse(text);
-
-    if (!res.ok) {
-      console.error("API ERROR:", data);
-      throw new Error(data.message || "Request failed");
-    }
-
-    return data;
-  } catch {
-    console.error("NON-JSON RESPONSE:", text);
-    throw new Error("Server returned invalid response (not JSON)");
-  }
-};
 
 /* ================================
    TYPES
@@ -87,11 +68,36 @@ export const register = async (data: any) => {
    BILLBOARDS
 ================================ */
 
-export const getBillboards = async (): Promise<Billboard[]> => {
-  return safeFetch(`${API_URL}/billboards`, {
+export const safeFetch = async (url: string, options: any = {}) => {
+  const res = await fetch(url, options);
+  const text = await res.text();
+
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error("NON-JSON RESPONSE:", text);
+    throw new Error("Server returned invalid response");
+  }
+
+  // ✅ HANDLE ERRORS PROPERLY
+  if (!res.ok) {
+    console.error("API ERROR:", data);
+    throw new Error(data.message || "Request failed");
+  }
+
+  return data;
+};
+
+// ✅ GET BILLBOARDS
+export const getBillboards = async () => {
+  return safeFetch(`${API_URL}/billboards?mine=1`, {
     headers: getHeaders(false),
   });
 };
+
+
 
 export const getBillboardById = async (id: number) => {
   return safeFetch(`${API_URL}/billboards/${id}`, {

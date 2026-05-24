@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -43,32 +43,54 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  // ✅ FETCH REAL DATA
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await getOwnerDashboard();
+  // ✅ REUSABLE FETCH
+  const loadData = useCallback(async () => {
+    try {
+      const res = await getOwnerDashboard();
 
-        setData({
-          reach: Number(res?.reach ?? 0),
-          leads: Number(res?.leads ?? 0),
-          payouts: Number(res?.payouts ?? 0),
-          rank: Number(res?.rank ?? 0),
-          bookings: Array.isArray(res?.bookings) ? res.bookings : [],
-          nextVacancy: res?.nextVacancy ?? undefined,
-          interactions: Array.isArray(res?.interactions)
-            ? res.interactions
-            : []
-        });
-      } catch (err) {
-        console.error("Dashboard error:", err);
-      } finally {
-        setLoading(false);
+      setData({
+        reach: Number(res?.reach ?? 0),
+        leads: Number(res?.leads ?? 0),
+        payouts: Number(res?.payouts ?? 0),
+        rank: Number(res?.rank ?? 0),
+        bookings: Array.isArray(res?.bookings) ? res.bookings : [],
+        nextVacancy: res?.nextVacancy ?? undefined,
+        interactions: Array.isArray(res?.interactions)
+          ? res.interactions
+          : []
+      });
+    } catch (err) {
+      console.error("Dashboard error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ✅ INITIAL LOAD
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // ✅ FIX: REFETCH WHEN USER RETURNS TO PAGE
+  useEffect(() => {
+    const handleFocus = () => {
+      loadData();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadData();
       }
     };
 
-    load();
-  }, []);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadData]);
 
   // ✅ HELPERS
   const formatNumber = (num: number) => {

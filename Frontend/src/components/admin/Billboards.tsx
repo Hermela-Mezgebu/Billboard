@@ -1,178 +1,336 @@
 "use client";
 
+
+
 import React, { useEffect, useState } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  Search,
-  Filter,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
 
 import {
-  getBillboards,
-  createBillboard,
-  deleteBillboard,
-  updateBillboard,
-  Billboard,
-  approveBillboard,
-  rejectBillboard,
+
+ Plus,
+
+ Edit2,
+
+Trash2,
+
+  Search,
+
+  CheckCircle,
+
+  XCircle,
+
+} from "lucide-react";
+
+
+
+import {
+
+  deleteBillboard,
+
+  updateBillboard,
+
+  Billboard,
+
+  approveBillboard,
+
+  rejectBillboard,
+
 } from "@/lib/api";
+
+
 
 import BillboardForm from "@/components/admin/BillboardForm";
 
+
+
 interface BillboardsProps {
-  onSelect?: (id: number) => void;
+
+  onSelect?: (id: number) => void;
+
 }
 
+
+
 export default function Billboards({ onSelect }: BillboardsProps) {
-  const [inventory, setInventory] = useState<Billboard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "approved" | "rejected"
-  >("all");
-  const [editingItem, setEditingItem] = useState<Billboard | null>(null);
 
-  /* ✅ FETCH */
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const data = await getBillboards();
-      setInventory(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Fetch billboards error:", err);
+  const [inventory, setInventory] = useState<Billboard[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [statusFilter, setStatusFilter] = useState<
+
+    "all" | "pending" | "approved" | "rejected"
+
+  >("all");
+
+  const [editingItem, setEditingItem] = useState<Billboard | null>(null);
+
+
+
+  /* ✅ FIXED FETCH (ADMIN ONLY) */
+
+const fetchData = async () => {
+  try {
+    setLoading(true);
+
+    const data = await getBillboards();
+
+    if (!Array.isArray(data)) {
       setInventory([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  /* ✅ DELETE */
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteBillboard(id);
-      fetchData();
-    } catch (err) {
-      console.error("Delete error:", err);
-    }
-  };
-
-  /* ✅ APPROVE */
-  const handleApprove = async (id: number) => {
-    try {
-      await approveBillboard(id.toString());
-      alert("✅ Billboard Approved");
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to approve billboard");
-    }
-  };
-
-  /* ✅ REJECT */
-  const handleReject = async (id: number) => {
-    const reason = prompt("Enter rejection reason:");
-    if (!reason) return;
-
-    try {
-      await rejectBillboard(id.toString(), reason);
-      alert("❌ Billboard Rejected");
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to reject billboard");
-    }
-  };
-
-  /* ✅ SUBMIT */
-  const handleSubmit = async (data: any) => {
-    try {
-      const formData = new FormData();
-
-      Object.keys(data).forEach((key) => {
-        const value = data[key];
-
-        if (value instanceof File) {
-          formData.append(key, value);
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
-        }
-      });
-
-      if (editingItem) {
-        await updateBillboard(editingItem.id, formData);
-      } else {
-        await createBillboard(formData);
-      }
-
-      setIsFormOpen(false);
-      setEditingItem(null);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  /* ✅ FILTER */
-  const filtered = inventory.filter((b) => {
-    const location = b.location || "";
-    const neighborhood = b.neighborhood || "";
-    const status = b.status || "pending";
-
-    // ✅ Filter by status
-    if (statusFilter !== "all" && status !== statusFilter) {
-      return false;
+      return;
     }
 
-    // ✅ Filter by search term
-    return (
-      location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      neighborhood.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+    // ✅ FIX: MAP API → UI SAFE FIELDS
+    const mapped = data.map((item: any) => ({
+      ...item,
+      imageUrl: item.image
+        ? `http://127.0.0.1:8000/storage/${item.image}`
+        : "/placeholder.jpg",
+      neighborhood: item.location ?? "Unknown",
+    }));
 
-  // ✅ Count by status
-  const pendingCount = inventory.filter((b) => b.status === "pending").length;
-  const approvedCount = inventory.filter((b) => b.status === "approved").length;
-  const rejectedCount = inventory.filter((b) => b.status === "rejected").length;
+    setInventory(mapped);
+  } catch (err) {
+    console.error("Fetch billboards error:", err);
+    setInventory([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-8"
-    >
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-2xl font-black dark:text-white">
-            Live Inventory
-          </h3>
-          <p className="text-slate-500 text-sm mt-1">
-            Manage all billboard listings
-          </p>
-        </div>
 
-        <button
-          onClick={() => {
-            setEditingItem(null);
-            setIsFormOpen(true);
-          }}
-          className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:scale-105 transition-all"
-        >
-          <Plus size={20} />
-          <span>Add Billboard</span>
-        </button>
-      </div>
+
+useEffect(() => {
+
+fetchData();
+
+ }, []);
+
+
+
+  /* DELETE */
+
+  const handleDelete = async (id: number) => {
+
+    try {
+
+      await deleteBillboard(id);
+
+      fetchData();
+
+    } catch (err) {
+
+      console.error("Delete error:", err);
+
+    }
+
+  };
+
+
+
+  /* APPROVE */
+
+  const handleApprove = async (id: number) => {
+
+    try {
+
+      await approveBillboard(id);
+
+      alert("✅ Billboard Approved");
+
+      fetchData();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert("Failed to approve billboard");
+
+    }
+
+  };
+
+
+
+  /* REJECT */
+
+  const handleReject = async (id: number) => {
+
+    const reason = prompt("Enter rejection reason:");
+
+    if (!reason) return;
+
+
+
+    try {
+
+      await rejectBillboard(id, reason);
+
+      alert("❌ Billboard Rejected");
+
+      fetchData();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert("Failed to reject billboard");
+
+    }
+
+  };
+
+
+
+  /* SUBMIT */
+
+  const handleSubmit = async (data: any) => {
+
+    try {
+
+      const formData = new FormData();
+
+
+
+      Object.keys(data).forEach((key) => {
+
+        const value = data[key];
+
+
+
+        if (value instanceof File) {
+
+          formData.append(key, value);
+
+        } else if (value !== undefined && value !== null) {
+
+          formData.append(key, String(value));
+
+        }
+
+      });
+
+
+
+      if (editingItem) {
+
+        await updateBillboard(editingItem.id, formData);
+
+      }
+
+
+
+      setIsFormOpen(false);
+
+      setEditingItem(null);
+
+      fetchData();
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+
+  };
+
+
+
+  /* FILTER */
+
+  const filtered = inventory.filter((b) => {
+
+    const location = b.location || "";
+
+    const status = b.status || "pending";
+
+
+
+    if (statusFilter !== "all" && status !== statusFilter) {
+
+      return false;
+
+    }
+
+
+
+    return location.toLowerCase().includes(searchTerm.toLowerCase());
+
+  });
+
+
+
+  const pendingCount = inventory.filter((b) => b.status === "pending").length;
+
+  const approvedCount = inventory.filter((b) => b.status === "approved").length;
+
+  const rejectedCount = inventory.filter((b) => b.status === "rejected").length;
+
+
+
+  return (
+
+    <motion.div
+
+      initial={{ opacity: 0, x: 20 }}
+
+      animate={{ opacity: 1, x: 0 }}
+
+      className="space-y-8"
+
+    >
+
+      {/* UI 100% UNCHANGED BELOW */}
+
+
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+        <div>
+
+          <h3 className="text-2xl font-black dark:text-white">
+
+            Live Inventory
+
+          </h3>
+
+          <p className="text-slate-500 text-sm mt-1">
+
+            Manage all billboard listings
+
+          </p>
+
+        </div>
+
+
+
+        <button
+
+          onClick={() => {
+
+            setEditingItem(null);
+
+            setIsFormOpen(true);
+
+          }}
+
+          className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:scale-105 transition-all"
+
+        >
+
+          <Plus size={20} />
+
+          <span>Add Billboard</span>
+
+        </button>
+
+   </div>
+
 
       {/* TABLE */}
       <div className="bg-white dark:bg-brand-card rounded-3xl border shadow-sm overflow-hidden">

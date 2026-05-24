@@ -23,24 +23,23 @@ interface Order {
 }
 
 /* ================= API ================= */
-async function getOwnerOrders(): Promise<Order[]> {
+async function getOwnerOrders(token: string | null): Promise<Order[]> {
   try {
     const res = await fetch("http://127.0.0.1:8000/api/owner/orders", {
       headers: {
         Accept: "application/json",
+        Authorization: `Bearer ${token || ""}`, // ✅ FIXED
       },
+      cache: "no-store", // ✅ CRITICAL FIX
     });
 
-    let data;
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("API ERROR:", text);
+      return [];
+    }
 
-try {
-  data = await res.json();
-} catch {
-  const text = await res.text();
-  console.error("NOT JSON:", text);
-  alert("Server returned invalid response");
-  return;
-}
+    const data = await res.json();
 
     return Array.isArray(data)
       ? data.map((o: any) => ({
@@ -72,9 +71,16 @@ export default function Orders() {
     reach: 0,
   });
 
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token")
+      : null;
+
   useEffect(() => {
     async function load() {
-      const data = await getOwnerOrders();
+      setLoading(true);
+
+      const data = await getOwnerOrders(token);
 
       setOrders(data);
 
@@ -94,7 +100,7 @@ export default function Orders() {
     }
 
     load();
-  }, []);
+  }, [token]); // ✅ re-run if token changes
 
   return (
     <motion.div
@@ -177,7 +183,6 @@ export default function Orders() {
               {orders.map(order => (
                 <tr key={order.id} className="border-b hover:bg-slate-50 transition">
 
-                  {/* CLIENT */}
                   <td className="p-8">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-indigo-600">
@@ -195,7 +200,6 @@ export default function Orders() {
                     </div>
                   </td>
 
-                  {/* BILLBOARD */}
                   <td className="p-8">
                     <div className="flex items-center gap-2">
                       <MapPin size={14} className="text-slate-400" />
@@ -205,7 +209,6 @@ export default function Orders() {
                     </div>
                   </td>
 
-                  {/* PROGRESS */}
                   <td className="p-8">
                     <div className="w-full max-w-[120px] space-y-2">
                       <div className="flex justify-between text-[9px]">
@@ -234,7 +237,6 @@ export default function Orders() {
                     </div>
                   </td>
 
-                  {/* INCOME */}
                   <td className="p-8">
                     <span className="text-sm font-black text-indigo-600">
                       ${order.income.toLocaleString()}
@@ -244,7 +246,6 @@ export default function Orders() {
                     </p>
                   </td>
 
-                  {/* ACTION */}
                   <td className="p-8 text-right">
                     <button className="h-12 w-12 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600">
                       <ExternalLink size={20} />

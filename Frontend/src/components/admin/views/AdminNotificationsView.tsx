@@ -20,10 +20,31 @@ export default function AdminNotificationsView() {
 
   const loadNotifications = async () => {
     try {
-      const data = await getNotifications();
+      const res = await getNotifications();
+
+      // ✅ FIX 1: HANDLE BOTH API FORMATS
+      let data: Notification[] = [];
+
+      if (Array.isArray(res)) {
+        data = res;
+      } else if (res?.data && Array.isArray(res.data)) {
+        data = res.data;
+      } else {
+        console.error("Unexpected notifications format:", res);
+        data = [];
+      }
+
+      // ✅ FIX 2: SORT NEWEST FIRST (optional but good)
+      data.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() -
+          new Date(a.created_at).getTime()
+      );
+
       setNotifications(data);
     } catch (err) {
       console.error("Failed to load notifications", err);
+      setNotifications([]); // ✅ SAFE FALLBACK
     } finally {
       setLoading(false);
     }
@@ -49,7 +70,9 @@ export default function AdminNotificationsView() {
                   className={`text-xs px-2 py-1 rounded ${
                     n.type === "approval"
                       ? "bg-green-600"
-                      : "bg-red-600"
+                      : n.type === "rejection"
+                      ? "bg-red-600"
+                      : "bg-indigo-600" // ✅ NEW: submission type
                   }`}
                 >
                   {n.type}

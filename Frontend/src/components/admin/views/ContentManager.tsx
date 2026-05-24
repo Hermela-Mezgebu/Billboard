@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -23,17 +25,34 @@ export function ContentManager() {
   const [news, setNews] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ SAFE REAL LOGIC (NO FAKE API)
+  // ✅ SAFE FETCH
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      // 👉 Replace this with real API later
-      const data: Article[] = []; // empty until backend ready
+      // 👉 Replace with real API later
+      const data: any = []; // simulate API
 
-      setNews(data);
+      // ✅ FORCE SAFE ARRAY
+      if (!Array.isArray(data)) {
+        setNews([]);
+        return;
+      }
+
+      // ✅ SANITIZE DATA (prevents crashes)
+      const safeData: Article[] = data.map((item: any) => ({
+        id: item?.id ?? Math.random().toString(),
+        title: item?.title ?? "Untitled",
+        category: item?.category ?? "General",
+        status: item?.status === "Published" ? "Published" : "Draft",
+        date: item?.date ?? new Date().toISOString(),
+        views: Number(item?.views ?? 0),
+      }));
+
+      setNews(safeData);
     } catch (err) {
       console.error(err);
+      setNews([]);
     } finally {
       setLoading(false);
     }
@@ -43,10 +62,9 @@ export function ContentManager() {
     fetchData();
   }, []);
 
-  // ✅ SAFE DELETE (NO API YET)
+  // ✅ SAFE DELETE
   const handleDelete = async (id: string) => {
     try {
-      // 👉 Replace with delete API later
       setNews(prev => prev.filter(item => item.id !== id));
     } catch (err) {
       console.error(err);
@@ -191,7 +209,7 @@ export function ContentManager() {
           </div>
         </div>
 
-        {/* RIGHT SIDE (UNCHANGED) */}
+        {/* RIGHT SIDE UNCHANGED */}
         <div className="space-y-8">
           <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-indigo-500/40 relative overflow-hidden group">
             <Newspaper className="absolute -right-8 -top-8 text-white/10 group-hover:rotate-12 transition-transform duration-700" size={180} />

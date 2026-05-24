@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
 import { createBillboard, getBillboards } from "@/lib/api";
@@ -28,46 +28,50 @@ export default function Billboards() {
     description: "",
     screenSize: "",
     duration: "",
-    type: "", // ✅ NEW
+    type: "",
   });
 
-  // ✅ NORMALIZE DATA FROM BACKEND
   const normalizeBillboard = (b: any): Billboard => ({
     id: b.id,
     title: b.title,
     location: b.location,
-    image:
-  b.image
-    ? `http://127.0.0.1:8000/storage/${b.image}`
-    : "/placeholder.jpg",
+    image: b.image
+      ? `http://127.0.0.1:8000/storage/${b.image}`
+      : "/placeholder.jpg",
     description: b.description || "",
-    screenSize: b.type || "",
+    screenSize: b.screen_size || "",
     status: b.status || "pending",
     type: b.type || "",
   });
 
-  // ✅ LOAD BILLBOARDS
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await getBillboards();
+  const loadBillboards = useCallback(async () => {
+    try {
+      const res = await getBillboards();
 
-        const normalized = Array.isArray(res)
-          ? res.map(normalizeBillboard)
-          : [];
-
-        setList(normalized);
-      } catch (err) {
-        console.error("LOAD ERROR:", err);
-      } finally {
-        setLoading(false);
+      if (!Array.isArray(res)) {
+        setList([]);
+        return;
       }
-    };
 
-    load();
+      const normalized = res.map(normalizeBillboard);
+      setList(normalized);
+    } catch (err) {
+      console.error("LOAD ERROR:", err);
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // 🔥 PRICE LOGIC
+  useEffect(() => {
+    loadBillboards();
+
+    const handleFocus = () => loadBillboards();
+    window.addEventListener("focus", handleFocus);
+
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [loadBillboards]);
+
   const getPriceFromDuration = (duration: string) => {
     switch (duration) {
       case "1_day":
@@ -81,7 +85,6 @@ export default function Billboards() {
     }
   };
 
-  // ✅ UPLOAD BILLBOARD
   const handleUpload = async () => {
     if (
       !form.title ||
@@ -89,7 +92,7 @@ export default function Billboards() {
       !form.description ||
       !form.screenSize ||
       !form.duration ||
-      !form.type || // ✅ REQUIRED
+      !form.type ||
       !media
     ) {
       alert("Fill all fields");
@@ -100,11 +103,10 @@ export default function Billboards() {
       setUploading(true);
 
       const formData = new FormData();
-
       formData.append("title", form.title);
       formData.append("location", form.location);
       formData.append("description", form.description);
-      formData.append("type", form.type); // ✅ digital / smart / etc
+      formData.append("type", form.type);
       formData.append("screen_size", form.screenSize);
       formData.append(
         "price",
@@ -114,14 +116,14 @@ export default function Billboards() {
       formData.append("media", media);
 
       const res = await createBillboard(formData);
-
       const newItem = normalizeBillboard(res);
 
       setList((prev) => [newItem, ...prev]);
 
+      await loadBillboards();
+
       alert("✅ Sent to admin for approval");
 
-      // RESET
       setForm({
         title: "",
         location: "",
@@ -166,7 +168,7 @@ export default function Billboards() {
           />
         </label>
 
-        {/* INPUTS */}
+        {/* ✅ RESTORED INPUTS */}
         <input
           value={form.title}
           placeholder="Title"
@@ -201,7 +203,6 @@ export default function Billboards() {
           className="w-full mb-3 px-4 py-2 rounded-lg bg-slate-800"
         />
 
-        {/* 🔥 TYPE SELECT */}
         <select
           value={form.type}
           onChange={(e) =>
