@@ -30,7 +30,7 @@ export default function Submissions() {
       ? localStorage.getItem("token")
       : null;
 
-  // ✅ ADMIN FETCH (FIXED)
+  // ✅ ADMIN FETCH (🔥 FIXED HERE)
   const fetchPending = async () => {
     try {
       setLoading(true);
@@ -52,8 +52,12 @@ export default function Submissions() {
         return;
       }
 
-      const data = await res.json();
-      setPending(Array.isArray(data) ? data : []);
+      const result = await res.json();
+
+      // 🔥 FIX: access result.data
+      const billboards = Array.isArray(result.data) ? result.data : [];
+
+      setPending(billboards);
 
     } catch (err) {
       console.error("FETCH ERROR:", err);
@@ -67,7 +71,7 @@ export default function Submissions() {
     fetchPending();
   }, []);
 
-  // ✅ APPROVE (REAL API)
+  // ✅ APPROVE
   const approve = async (id: number) => {
     try {
       await fetch(
@@ -81,13 +85,13 @@ export default function Submissions() {
         }
       );
 
-      fetchPending(); // 🔥 refresh
+      fetchPending();
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✅ REJECT (REAL API)
+  // ✅ REJECT (🔥 FIXED BODY KEY)
   const reject = async (id: number) => {
     const reason = prompt("Enter rejection reason:");
     if (!reason) return;
@@ -102,11 +106,12 @@ export default function Submissions() {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ reason }),
+          // 🔥 FIX: send "message" not "reason"
+          body: JSON.stringify({ message: reason }),
         }
       );
 
-      fetchPending(); // 🔥 refresh
+      fetchPending();
     } catch (err) {
       console.error(err);
     }

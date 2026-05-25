@@ -20,6 +20,9 @@ interface Billboard {
   title: string;
   location: string;
   image: string;
+  neighborhood: string;
+  description: string;
+  pricePerMonth: number;
   category: string;
 }
 
@@ -42,7 +45,9 @@ export default function Billboards({ onSelect }: BillboardsProps) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/billboards?status=approved");
+        const res = await fetch(
+          "http://127.0.0.1:8000/api/billboards?status=approved"
+        );
 
         if (!res.ok) {
           const text = await res.text();
@@ -50,9 +55,11 @@ export default function Billboards({ onSelect }: BillboardsProps) {
           throw new Error("Failed to fetch");
         }
 
-        const data = await res.json();
+        const raw = await res.json();
 
-        // ✅ Normalize backend response
+        // ✅ normalize response
+        const data = Array.isArray(raw) ? raw : raw?.data || [];
+
         const normalized = data.map((b: any) => ({
           id: b.id,
           title: b.title || "Billboard",
@@ -62,7 +69,12 @@ export default function Billboards({ onSelect }: BillboardsProps) {
             b.image_url ||
             (Array.isArray(b.images) ? b.images[0] : "") ||
             "/placeholder.jpg",
-          category: b.type || "Digital", // 🔥 IMPORTANT
+
+          neighborhood: b.neighborhood || b.location || "Unknown Area",
+          description: b.description || "No description available",
+          pricePerMonth: Number(b.price || 1000),
+
+          category: b.type || "Digital",
         }));
 
         setBillboards(normalized);
@@ -82,12 +94,12 @@ export default function Billboards({ onSelect }: BillboardsProps) {
     return `AI Suggestion: Try "${searchQuery} Premium" or high-traffic areas`;
   }, [searchQuery]);
 
-  // ✅ FILTERING
+  // ✅ FILTER FROM API DATA
   const filtered = useMemo(() => {
     return billboards.filter((b) => {
       const matchesSearch =
-        b.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.title.toLowerCase().includes(searchQuery.toLowerCase());
+        b.neighborhood.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.location.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
         activeCategory === "All" ||
@@ -146,21 +158,9 @@ export default function Billboards({ onSelect }: BillboardsProps) {
 
           {/* VIEW TOGGLE */}
           <div className="flex gap-2 bg-gray-800 p-1 rounded-xl">
-            <ViewToggle
-              active={viewMode === "grid"}
-              onClick={() => setViewMode("grid")}
-              icon={<LayoutGrid size={18} />}
-            />
-            <ViewToggle
-              active={viewMode === "list"}
-              onClick={() => setViewMode("list")}
-              icon={<ListIcon size={18} />}
-            />
-            <ViewToggle
-              active={viewMode === "map"}
-              onClick={() => setViewMode("map")}
-              icon={<MapIcon size={18} />}
-            />
+            <ViewToggle active={viewMode === "grid"} onClick={() => setViewMode("grid")} icon={<LayoutGrid size={18} />} />
+            <ViewToggle active={viewMode === "list"} onClick={() => setViewMode("list")} icon={<ListIcon size={18} />} />
+            <ViewToggle active={viewMode === "map"} onClick={() => setViewMode("map")} icon={<MapIcon size={18} />} />
           </div>
         </div>
 
@@ -199,7 +199,11 @@ export default function Billboards({ onSelect }: BillboardsProps) {
         {/* CONTENT */}
         <div className="min-h-[400px]">
           {loading ? (
-            <p className="text-center text-gray-400">Loading billboards...</p>
+            <p className="text-center text-gray-400">Loading...</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-gray-400">
+              No approved billboards found
+            </p>
           ) : viewMode === "map" ? (
             <div className="h-[400px] flex items-center justify-center border rounded-xl">
               <MapPin size={80} className="text-indigo-500 animate-bounce" />
@@ -215,28 +219,13 @@ export default function Billboards({ onSelect }: BillboardsProps) {
             >
               {filtered.map((billboard) => (
                 <motion.div key={billboard.id} whileHover={{ scale: 1.03 }}>
-                  <BillboardCard
-                    billboard={billboard}
-                  />
+                  <BillboardCard billboard={billboard} />
                 </motion.div>
               ))}
             </div>
           )}
         </div>
 
-        {/* CTA */}
-        <div className="mt-20 p-8 rounded-3xl bg-indigo-600 text-white flex justify-between items-center">
-          <div>
-            <h3 className="text-2xl font-bold">Need help choosing?</h3>
-            <p className="text-indigo-200">
-              Our AI suggests the best billboard.
-            </p>
-          </div>
-
-          <button className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-bold">
-            Get AI Recommendation
-          </button>
-        </div>
       </div>
     </div>
   );

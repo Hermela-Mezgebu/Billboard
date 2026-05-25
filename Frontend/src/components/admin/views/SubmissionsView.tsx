@@ -13,7 +13,7 @@ export function SubmissionsView() {
   const [selected, setSelected] = useState<any>(null);
   const [role] = useState<"admin">("admin");
 
-  // analytics
+  // analytics (you can keep this if you want for other use)
   const [stats, setStats] = useState({
     approved: 0,
     rejected: 0,
@@ -24,28 +24,31 @@ export function SubmissionsView() {
     load();
   }, []);
 
-  const load = async () => {
-    const data = await getSubmissions();
+const load = async () => {
+  const res = await getSubmissions();
 
-    const enriched = await Promise.all(
-      data.map(async (s: any) => {
-        const ai = await detectFraud(s);
+  // ✅ FIX: normalize response
+  const data = Array.isArray(res) ? res : res?.data || [];
 
-        return {
-          ...s,
-          ai
-        };
-      })
-    );
+  const enriched = await Promise.all(
+    data.map(async (s: any) => {
+      const ai = await detectFraud(s);
 
-    setSubs(enriched);
+      return {
+        ...s,
+        ai
+      };
+    })
+  );
 
-    setStats({
-      approved: enriched.filter(s => s.status === "approved").length,
-      rejected: enriched.filter(s => s.status === "rejected").length,
-      fraud: enriched.filter(s => s.ai?.isFake).length
-    });
-  };
+  setSubs(enriched);
+
+  setStats({
+    approved: enriched.filter(s => s.status === "approved").length,
+    rejected: enriched.filter(s => s.status === "rejected").length,
+    fraud: enriched.filter(s => s.ai?.isFake).length
+  });
+};
 
   const handleAction = async (id: string, status: string) => {
     if (!canApprove(role)) {
@@ -62,8 +65,8 @@ export function SubmissionsView() {
   return (
     <div className="space-y-10">
 
-      {/* ANALYTICS */}
-      <AnalyticsDashboard data={stats} />
+      {/* ✅ FIX: pass billboards instead of data */}
+      <AnalyticsDashboard billboards={subs} />
 
       {/* LIST */}
       <div className="grid gap-6">

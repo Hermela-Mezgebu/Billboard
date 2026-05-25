@@ -45,7 +45,7 @@ class AdminBillboardController extends Controller
             'status' => 'approved'
         ]);
 
-        // ✅ NOTIFY OWNER
+        // ✅ Notify owner
         $notification = Notification::create([
             'owner_id' => $billboard->owner_id,
             'message' => '🎉 Your billboard has been approved!',
@@ -67,15 +67,18 @@ class AdminBillboardController extends Controller
     {
         $billboard = Billboard::findOrFail($id);
 
+        // ✅ FIX: use 'reason' safely
+        $reason = $request->reason ?? 'No reason provided';
+
         $billboard->update([
             'status' => 'rejected',
-            'rejection_reason' => $request->message
+            'rejection_reason' => $reason
         ]);
 
-        // ✅ NOTIFY OWNER
+        // ✅ Notify owner
         $notification = Notification::create([
             'owner_id' => $billboard->owner_id,
-            'message' => '❌ Your billboard was rejected: ' . $request->message,
+            'message' => '❌ Your billboard was rejected: ' . $reason,
             'type' => 'billboard',
             'is_read' => 0,
         ]);
@@ -88,7 +91,7 @@ class AdminBillboardController extends Controller
     }
 
     /**
-     * 📢 SEND TO ADMIN (OPTIONAL HERE)
+     * 📢 CREATE BILLBOARD (OWNER → ADMIN FLOW)
      */
     public function store(Request $request)
     {
@@ -97,7 +100,7 @@ class AdminBillboardController extends Controller
             'status' => 'pending',
         ]);
 
-        // ✅ NOTIFY ADMINS
+        // ✅ Notify admins
         $admins = User::where('role', 'admin')->get();
 
         foreach ($admins as $admin) {

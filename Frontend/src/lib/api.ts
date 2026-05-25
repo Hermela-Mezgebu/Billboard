@@ -91,23 +91,69 @@ export const safeFetch = async (url: string, options: any = {}) => {
 };
 
 // ✅ GET BILLBOARDS
-export const getBillboards = async (params?: {
-  mine?: boolean;
-  status?: string;
-}) => {
-  let url = `${API_URL}/billboards`;
+// export const getBillboards = async (params?: {
+//   mine?: boolean;
+//   status?: string;
+// }) => {
+//   let url = `${API_URL}/billboards`;
 
-  const query = [];
+//   const query = [];
 
-  if (params?.mine) query.push("mine=1");
-  if (params?.status) query.push(`status=${params.status}`);
+//   if (params?.mine) query.push("mine=1");
+//   if (params?.status) query.push(`status=${params.status}`);
 
-  if (query.length > 0) {
-    url += `?${query.join("&")}`;
-  }
+//   if (query.length > 0) {
+//     url += `?${query.join("&")}`;
+//   }
 
-  return safeFetch(url, {
+//   return safeFetch(url, {
+//     headers: getHeaders(false),
+//   });
+// };
+
+
+/* =========================
+   OWNER BILLBOARDS
+========================= */
+export const getBillboards = async () => {
+  return safeFetch(`${API_URL}/billboards?mine=1`, {
     headers: getHeaders(false),
+  });
+};
+
+/* =========================
+   ADMIN BILLBOARDS (🔥 FIX)
+========================= */
+/* =========================
+   ADMIN BILLBOARDS (🔥 FIX)
+========================= */
+export const getAdminBillboards = async () => {
+  return safeFetch(`${API_URL}/admin/billboards/pending`, {
+    headers: getHeaders(false),
+  });
+};
+
+export const getPendingBillboards = async () => {
+  return safeFetch(`${API_URL}/admin/billboards/pending`, {
+    headers: getHeaders(false),
+  });
+};
+
+/* =========================
+   APPROVE / REJECT
+========================= */
+export const approveBillboard = async (id: number) => {
+  return safeFetch(`${API_URL}/admin/billboards/${id}/approve`, {
+    method: "POST",
+    headers: getHeaders(true),
+  });
+};
+
+export const rejectBillboard = async (id: number, reason: string) => {
+  return safeFetch(`${API_URL}/admin/billboards/${id}/reject`, {
+    method: "POST",
+    headers: getHeaders(true),
+    body: JSON.stringify({ reason }),
   });
 };
 
@@ -147,24 +193,7 @@ export const deleteBillboard = async (id: number) => {
   });
 };
 
-/* ================================
-   ADMIN BILLBOARD (🔥 FIXED ROUTES)
-================================ */
 
-export const approveBillboard = async (id: number) => {
-  return safeFetch(`${API_URL}/admin/billboards/${id}/approve`, {
-    method: "POST",
-    headers: getHeaders(false),
-  });
-};
-
-export const rejectBillboard = async (id: number, message: string) => {
-  return safeFetch(`${API_URL}/admin/billboards/${id}/reject`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ message }),
-  });
-};
 
 /* ================================
    BOOKINGS

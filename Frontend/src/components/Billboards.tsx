@@ -21,7 +21,6 @@ interface Billboard {
   location: string;
   image: string;
 
-  // ✅ REQUIRED BY BillboardCard
   neighborhood: string;
   description: string;
   pricePerMonth: number;
@@ -44,57 +43,58 @@ export default function Billboards({ onSelect }: BillboardsProps) {
 
   const categories = ["All", "Digital", "Static", "Premium", "Smart"];
 
-  // ✅ FETCH APPROVED BILLBOARDS
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/billboards?status=approved");
+  // ✅ FIXED FETCH
+ useEffect(() => {
+  const load = async () => {
+    try {
+      const res = await fetch(
+        "http://127.0.0.1:8000/api/billboards?status=approved"
+      );
 
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("API ERROR:", text);
-          throw new Error("Failed to fetch");
-        }
-
-        const data = await res.json();
-
-        // ✅ Normalize backend response
-       const normalized = data.map((b: any) => ({
-  id: b.id,
-  title: b.title || "Billboard",
-  location: b.location || "",
-  image:
-    b.image ||
-    b.image_url ||
-    (Array.isArray(b.images) ? b.images[0] : "") ||
-    "/placeholder.jpg",
-
-  // ✅ FIXES
-  neighborhood: b.neighborhood || b.location || "Unknown Area",
-  description: b.description || "No description available",
-  pricePerMonth: Number(b.price || 1000),
-
-  category: b.type || "Digital",
-}));
-
-        setBillboards(normalized);
-      } catch (err) {
-        console.error("LOAD ERROR:", err);
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("API ERROR:", text);
+        throw new Error("Failed to fetch");
       }
-    };
 
-    load();
-  }, []);
+      const data = await res.json();
 
-  // AI Suggestion
+      // ✅ FIX: ensure it's array
+      const safeData = Array.isArray(data) ? data : data.data || [];
+
+      const normalized = safeData.map((b: any) => ({
+        id: b.id,
+        title: b.title || "Billboard",
+        location: b.location || "",
+        image:
+          b.image ||
+          b.image_url ||
+          (Array.isArray(b.images) ? b.images[0] : "") ||
+          "/placeholder.jpg",
+
+        neighborhood: b.neighborhood || b.location || "Unknown Area",
+        description: b.description || "No description available",
+        pricePerMonth: Number(b.price || 1000),
+
+        category: b.type || "Digital",
+      }));
+
+      setBillboards(normalized);
+    } catch (err) {
+      console.error("LOAD ERROR:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, []);
+
   const aiSuggestion = useMemo(() => {
     if (!searchQuery) return null;
     return `AI Suggestion: Try "${searchQuery} Premium" or high-traffic areas`;
   }, [searchQuery]);
 
-  // ✅ FILTERING
   const filtered = useMemo(() => {
     return billboards.filter((b) => {
       const matchesSearch =
@@ -111,13 +111,13 @@ export default function Billboards({ onSelect }: BillboardsProps) {
 
   return (
     <div className="relative overflow-hidden">
-      {/* BACKGROUND */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute w-[500px] h-[500px] bg-indigo-500/20 blur-3xl rounded-full top-[-100px] left-[-100px] animate-pulse" />
         <div className="absolute w-[400px] h-[400px] bg-purple-500/20 blur-3xl rounded-full bottom-[-100px] right-[-100px] animate-pulse" />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+
         {/* HEADER */}
         <div className="mb-12">
           <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm uppercase mb-3">
@@ -158,21 +158,9 @@ export default function Billboards({ onSelect }: BillboardsProps) {
 
           {/* VIEW TOGGLE */}
           <div className="flex gap-2 bg-gray-800 p-1 rounded-xl">
-            <ViewToggle
-              active={viewMode === "grid"}
-              onClick={() => setViewMode("grid")}
-              icon={<LayoutGrid size={18} />}
-            />
-            <ViewToggle
-              active={viewMode === "list"}
-              onClick={() => setViewMode("list")}
-              icon={<ListIcon size={18} />}
-            />
-            <ViewToggle
-              active={viewMode === "map"}
-              onClick={() => setViewMode("map")}
-              icon={<MapIcon size={18} />}
-            />
+            <ViewToggle active={viewMode === "grid"} onClick={() => setViewMode("grid")} icon={<LayoutGrid size={18} />} />
+            <ViewToggle active={viewMode === "list"} onClick={() => setViewMode("list")} icon={<ListIcon size={18} />} />
+            <ViewToggle active={viewMode === "map"} onClick={() => setViewMode("map")} icon={<MapIcon size={18} />} />
           </div>
         </div>
 
@@ -212,6 +200,8 @@ export default function Billboards({ onSelect }: BillboardsProps) {
         <div className="min-h-[400px]">
           {loading ? (
             <p className="text-center text-gray-400">Loading billboards...</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-gray-400">No approved billboards found</p>
           ) : viewMode === "map" ? (
             <div className="h-[400px] flex items-center justify-center border rounded-xl">
               <MapPin size={80} className="text-indigo-500 animate-bounce" />
@@ -227,28 +217,13 @@ export default function Billboards({ onSelect }: BillboardsProps) {
             >
               {filtered.map((billboard) => (
                 <motion.div key={billboard.id} whileHover={{ scale: 1.03 }}>
-                  <BillboardCard
-                    billboard={billboard}
-                  />
+                  <BillboardCard billboard={billboard} />
                 </motion.div>
               ))}
             </div>
           )}
         </div>
 
-        {/* CTA */}
-        <div className="mt-20 p-8 rounded-3xl bg-indigo-600 text-white flex justify-between items-center">
-          <div>
-            <h3 className="text-2xl font-bold">Need help choosing?</h3>
-            <p className="text-indigo-200">
-              Our AI suggests the best billboard.
-            </p>
-          </div>
-
-          <button className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-bold">
-            Get AI Recommendation
-          </button>
-        </div>
       </div>
     </div>
   );
