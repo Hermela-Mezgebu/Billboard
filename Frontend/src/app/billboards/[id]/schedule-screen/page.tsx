@@ -30,7 +30,24 @@ export default function Page() {
           return;
         }
 
-        setBillboard(data);
+      const BASE_URL = "http://127.0.0.1:8000";
+
+const normalizeImage = (img: string | null) => {
+  if (!img) return "/placeholder.jpg";
+
+  if (img.startsWith("http")) return img;
+
+  return `${BASE_URL}/storage/${img.replace("storage/", "")}`;
+};
+
+setBillboard({
+  ...data,
+  image: normalizeImage(data.image),
+  owner: {
+    ...data.owner,
+    logo: normalizeImage(data.owner?.logo),
+  },
+});
       } catch (err) {
         console.error("Failed to fetch billboard", err);
       } finally {

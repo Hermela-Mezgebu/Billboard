@@ -16,5 +16,5 @@ export default async function BillboardPage({ params }: PageProps) {
 
   if (!billboard) return notFound();
 
-  return <BillboardDetail billboard={billboard} />;
+  return <BillboardDetail billboard={billboard} onBack={() => window.history.back()} />;
 }
