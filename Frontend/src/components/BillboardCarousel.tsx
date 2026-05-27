@@ -25,7 +25,7 @@ export default function BillboardCard({
       <Link href={`/billboards/${billboard.id}`}>
        <div className="relative w-full h-48">
   <Image
-    src={billboard.imageUrl?.trim() ? billboard.imageUrl : "/fallback.jpg"}
+   src={billboard.image?.trim() ? billboard.image : "/fallback.jpg"}
     alt={billboard.location}
     fill
     className="object-cover rounded-lg"

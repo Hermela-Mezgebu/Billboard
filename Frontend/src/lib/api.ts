@@ -42,7 +42,10 @@ export interface Billboard {
 /* ================================
    AUTH
 ================================ */
-
+// types.ts
+export interface BillboardFilter {
+  status?: string;
+} 
 export const login = async (data: any) => {
   const result = await safeFetch(`${API_URL}/login`, {
     method: "POST",
@@ -115,11 +118,13 @@ export const safeFetch = async (url: string, options: any = {}) => {
 /* =========================
    OWNER BILLBOARDS
 ========================= */
-export const getBillboards = async () => {
-  return safeFetch(`${API_URL}/billboards?mine=1`, {
-    headers: getHeaders(false),
-  });
-};
+// api.ts or wherever it's defined
+export async function getBillboards(filter?: BillboardFilter) {
+  const query = filter?.status ? `?status=${filter.status}` : "";
+  
+  const res = await fetch(`/api/billboards${query}`);
+  return res.json();
+}
 
 /* =========================
    ADMIN BILLBOARDS (🔥 FIX)

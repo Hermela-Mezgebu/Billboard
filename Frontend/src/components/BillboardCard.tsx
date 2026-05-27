@@ -26,9 +26,11 @@ const router = useRouter();
       {/* IMAGE */}
       <div className="relative w-full h-48">
         <Image
-          src={billboard.imageUrl?.trim() ? billboard.imageUrl : "/fallback.jpg"}
+          src={billboard.image?.trim() ? billboard.image : "/fallback.jpg"}
           alt={billboard.location}
           fill
+          unoptimized
+          loading="eager"
           className="object-cover rounded-lg"
         />
       </div>

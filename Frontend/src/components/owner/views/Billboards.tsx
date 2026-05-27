@@ -31,22 +31,22 @@ export default function Billboards() {
     type: "",
   });
 
-  const normalizeBillboard = (b: any): Billboard => ({
-    id: b.id,
-    title: b.title,
-    location: b.location,
-    image: b.image
-      ? `http://127.0.0.1:8000/storage/${b.image}`
-      : "/placeholder.jpg",
-    description: b.description || "",
-    screenSize: b.screen_size || "",
-    status: b.status || "pending",
-    type: b.type || "",
-  });
+const normalizeBillboard = (b: any): Billboard => ({
+  id: b.id,
+  title: b.title,
+  location: b.location,
+  image: b.image
+    ? `http://127.0.0.1:8000/storage/${b.image}`
+    : "/placeholder.jpg",
+  description: b.description || "",
+  screenSize: b.screen_size || "",
+  status: b.status || "pending",
+  type: b.type || "",
+});
 
   const loadBillboards = useCallback(async () => {
     try {
-      const res = await getBillboards({ mine: true });
+      const res = await getBillboards();
 
       if (!Array.isArray(res)) {
         setList([]);

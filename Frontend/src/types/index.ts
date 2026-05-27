@@ -13,8 +13,8 @@ export interface Billboard {
   id: number;
 
   // ✅ IMAGES
-  imageUrl?: string;
-  img?: string; // fallback for old data
+  image?: string;
+ // fallback for old data
   additionalImages?: string[];
   // ✅ ADD THIS
   videoUrl?: string;
@@ -33,7 +33,8 @@ export interface Billboard {
   light_type?: string;
   placement?: string;
   reach?: string;
-
+latitude: number;
+longitude: number;
   // ✅ PRICING
   pricePerMonth: number;
 
@@ -44,104 +45,7 @@ export interface Billboard {
   owner?: Owner;
 }
 
-/* ✅ CLEAN DATA (FIXED) */
-export const billboardData: Billboard[] = [
-  {
-    id: 1,
-    location: "Addis Ababa",
-    neighborhood: "Piyasa",
-    description:
-      "Prime location in the heart of Addis with high foot traffic and massive visibility.",
-
-    imageUrl:
-      "/img/billboard-1.jpg",
-
-    additionalImages: [
-       "/public/img/billboard-1.jpg",
-        "/public/img/billboard-6.jpg"
-    ],
-
-    screens: 2,
-    width: 4,
-    height: "2m",
-    lighting: "High Power",
-
-    pricePerMonth: 47,
-    category: "Digital",
-    placement: "High Traffic Area",
-    reach: "60,000 - 100,000",
-
-    owner: {
-      name: "Esayas General Advertising",
-      description: "Leader in outdoor advertising",
-      logo: "https://api.dicebear.com/7.x/initials/svg?seed=EG",
-    },
-  },
-
-  {
-    id: 2, // ✅ FIXED
-    location: "Addis Ababa",
-    neighborhood: "Megenagna",
-    description:
-      "Busy intersection connecting major routes, ideal for brand awareness.",
-
-    imageUrl:
-      "/img/billboard-6.jpg",
-
-    additionalImages: [
-      "/img/billboard-2.jpg",
-      "/img/billboard-7.jpg",
-    ],
-
-    screens: 2,
-    width: 4,
-    height: "2m",
-    lighting: "Wide Spot",
-
-    pricePerMonth: 77,
-    category: "Static",
-    placement: "Roundabout Hub",
-    reach: "80,000 - 150,000",
-
-    owner: {
-      name: "Esayas General Advertising",
-      description: "Leader in outdoor advertising",
-      logo: "https://api.dicebear.com/7.x/initials/svg?seed=EG",
-    },
-  },
-
-  {
-    id: 3, // ✅ FIXED
-    location: "Addis Ababa",
-    neighborhood: "4 Kilo",
-    description:
-      "Close to government offices and universities, reaching a diverse audience.",
-
-    imageUrl:
-      "/img/billboard-6.jpg",
-
-    additionalImages: [
-      "/img/billboard-3-additional-1.jpg",
-      "/img/billboard-3-additional-2.jpg"
-    ],
-
-    screens: 2,
-    width: 4,
-    height: "2m",
-    lighting: "Multi-Color",
-
-    pricePerMonth: 56,
-    category: "Digital",
-    placement: "Institutional District",
-    reach: "40,000 - 90,000",
-
-    owner: {
-      name: "Bright Media Solutions",
-      description: "Specializing in digital displays",
-      logo: "https://api.dicebear.com/7.x/initials/svg?seed=BM",
-    },
-  },
-];
+const billboardData: Billboard[] = [];
 
 /* ✅ BOOKING */
 export interface Booking {

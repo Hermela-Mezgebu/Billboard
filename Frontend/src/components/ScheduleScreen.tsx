@@ -9,8 +9,9 @@ import { useRouter } from "next/navigation";
 import { Billboard } from "@/types";
 
 interface SchedulingPageProps {
-  billboard: Billboard | null;
+  billboard: Billboard;
   onBack: () => void;
+  onContinue: (data: any) => void;
 }
 
 export default function SchedulingPage({
@@ -118,7 +119,7 @@ export default function SchedulingPage({
         {/* LEFT */}
         <div className="bg-[#1a2029] p-6 rounded-3xl border border-gray-800">
           <img
-            src={billboard.img || "/img/billboard-6.jpg"}
+            src={billboard.image || "/img/billboard-6.jpg"}
             className="w-full h-80 object-cover rounded-2xl"
           />
 

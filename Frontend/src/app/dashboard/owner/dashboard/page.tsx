@@ -18,15 +18,22 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Link from "next/link";
 
+/** ✅ Extend Billboard locally (DO NOT touch global type) */
+interface BillboardExtended extends Billboard {
+  status?: string;
+}
+
 export default function OwnerDashboard() {
   const { user, role } = useAuth();
 
-  const [billboards, setBillboards] = useState<Billboard[]>([]);
+  const [billboards, setBillboards] = useState<BillboardExtended[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 🔄 Fetch from API (SQLite backend)
+  const BASE_URL = "http://127.0.0.1:8000";
+
+  // 🔄 Fetch from API
   const fetchData = async () => {
     try {
       if (!user || role !== "owner") return;
@@ -38,7 +45,22 @@ export default function OwnerDashboard() {
         bookingService.getOwnerBookings(String(user.id)),
       ]);
 
-      setBillboards(billboardRes.data);
+      /** ✅ Normalize billboard data */
+      const normalized = billboardRes.data.map((b: any) => ({
+        ...b,
+
+        // ✅ FIX IMAGE (no images[])
+        image: b.image
+          ? `${BASE_URL}/storage/${b.image}`
+          : b.image_url
+          ? b.image_url
+          : "/placeholder.jpg",
+
+        // ✅ include status safely
+        status: b.status || "pending",
+      }));
+
+      setBillboards(normalized);
       setBookings(bookingRes.data);
     } catch (err) {
       setError("Failed to load dashboard data");
@@ -63,7 +85,6 @@ export default function OwnerDashboard() {
 
   return (
     <div className="space-y-10">
-
       {/* ❌ Error */}
       {error && (
         <div className="flex items-center gap-3 bg-red-50 text-red-600 p-4 rounded-xl">
@@ -119,7 +140,6 @@ export default function OwnerDashboard() {
 
       {/* 📦 Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
         {/* 📄 Bookings */}
         <section className="lg:col-span-2 bg-white rounded-[32px] border p-8 shadow-sm">
           <h2 className="text-2xl font-black mb-6">
@@ -186,8 +206,9 @@ export default function OwnerDashboard() {
                   key={b.id}
                   className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/10"
                 >
+                  {/* ✅ FIXED IMAGE */}
                   <img
-                    src={b.images?.[0] || "/placeholder.jpg"}
+                    src={b.image}
                     className="w-12 h-12 rounded-xl object-cover"
                   />
 
@@ -200,6 +221,7 @@ export default function OwnerDashboard() {
                     </p>
                   </div>
 
+                  {/* ✅ FIXED STATUS */}
                   <div
                     className={cn(
                       "p-1 rounded-full",
@@ -217,6 +239,8 @@ export default function OwnerDashboard() {
     </div>
   );
 }
+
+/* ================= COMPONENTS ================= */
 
 function StatCard({
   icon,
@@ -265,7 +289,9 @@ function StatusBadge({
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${styles[status]}`}>
+    <span
+      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${styles[status]}`}
+    >
       {status}
     </span>
   );

@@ -41,12 +41,11 @@ export default function Billboards({ onSelect }: BillboardsProps) {
 
   const categories = ["All", "Digital", "Static", "Premium", "Smart"];
 
-  // ✅ FETCH APPROVED BILLBOARDS
   useEffect(() => {
     const load = async () => {
       try {
         const res = await fetch(
-          "http://127.0.0.1:8000/api/billboards?status=approved"
+          "http://localhost:8000/api/billboards?status=approved"
         );
 
         if (!res.ok) {
@@ -56,24 +55,28 @@ export default function Billboards({ onSelect }: BillboardsProps) {
         }
 
         const raw = await res.json();
-
-        // ✅ normalize response
         const data = Array.isArray(raw) ? raw : raw?.data || [];
+
+        const BASE_URL = "http://localhost:8000";
 
         const normalized = data.map((b: any) => ({
           id: b.id,
           title: b.title || "Billboard",
           location: b.location || "",
+
+          // ✅ FIXED IMAGE
           image:
-            b.image ||
-            b.image_url ||
-            (Array.isArray(b.images) ? b.images[0] : "") ||
-            "/placeholder.jpg",
+            b.image
+              ? `${BASE_URL}/storage/${b.image}`
+              : b.image_url
+              ? b.image_url
+              : Array.isArray(b.images) && b.images.length > 0
+              ? `${BASE_URL}/storage/${b.images[0]}`
+              : "", // ❌ no fallback
 
           neighborhood: b.neighborhood || b.location || "Unknown Area",
           description: b.description || "No description available",
           pricePerMonth: Number(b.price || 1000),
-
           category: b.type || "Digital",
         }));
 
@@ -88,13 +91,11 @@ export default function Billboards({ onSelect }: BillboardsProps) {
     load();
   }, []);
 
-  // AI Suggestion
   const aiSuggestion = useMemo(() => {
     if (!searchQuery) return null;
     return `AI Suggestion: Try "${searchQuery} Premium" or high-traffic areas`;
   }, [searchQuery]);
 
-  // ✅ FILTER FROM API DATA
   const filtered = useMemo(() => {
     return billboards.filter((b) => {
       const matchesSearch =
@@ -111,14 +112,12 @@ export default function Billboards({ onSelect }: BillboardsProps) {
 
   return (
     <div className="relative overflow-hidden">
-      {/* BACKGROUND */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute w-[500px] h-[500px] bg-indigo-500/20 blur-3xl rounded-full top-[-100px] left-[-100px] animate-pulse" />
         <div className="absolute w-[400px] h-[400px] bg-purple-500/20 blur-3xl rounded-full bottom-[-100px] right-[-100px] animate-pulse" />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-        {/* HEADER */}
         <div className="mb-12">
           <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm uppercase mb-3">
             <TrendingUp size={16} />
@@ -134,7 +133,6 @@ export default function Billboards({ onSelect }: BillboardsProps) {
           </p>
         </div>
 
-        {/* SEARCH */}
         <div className="sticky top-16 z-30 mb-8 backdrop-blur-xl border-b p-4 flex flex-col gap-4 md:flex-row md:justify-between">
           <div className="flex items-center gap-4 w-full max-w-2xl">
             <div className="relative w-full">
@@ -156,7 +154,6 @@ export default function Billboards({ onSelect }: BillboardsProps) {
             </button>
           </div>
 
-          {/* VIEW TOGGLE */}
           <div className="flex gap-2 bg-gray-800 p-1 rounded-xl">
             <ViewToggle active={viewMode === "grid"} onClick={() => setViewMode("grid")} icon={<LayoutGrid size={18} />} />
             <ViewToggle active={viewMode === "list"} onClick={() => setViewMode("list")} icon={<ListIcon size={18} />} />
@@ -164,7 +161,6 @@ export default function Billboards({ onSelect }: BillboardsProps) {
           </div>
         </div>
 
-        {/* AI */}
         {aiSuggestion && (
           <motion.div className="mb-6 p-4 rounded-xl bg-indigo-600/20 text-indigo-300 flex items-center gap-2">
             <Sparkles size={16} />
@@ -172,7 +168,6 @@ export default function Billboards({ onSelect }: BillboardsProps) {
           </motion.div>
         )}
 
-        {/* FILTER */}
         <AnimatePresence>
           {isFilterOpen && (
             <motion.div className="mb-8 p-6 bg-gray-800 rounded-xl">
@@ -196,7 +191,6 @@ export default function Billboards({ onSelect }: BillboardsProps) {
           )}
         </AnimatePresence>
 
-        {/* CONTENT */}
         <div className="min-h-[400px]">
           {loading ? (
             <p className="text-center text-gray-400">Loading...</p>
@@ -225,7 +219,6 @@ export default function Billboards({ onSelect }: BillboardsProps) {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

@@ -96,3 +96,5 @@ export const bookingService = {
     return res.data;
   },
 };
+
+

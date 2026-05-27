@@ -118,7 +118,7 @@ export function BookingConfirmation({ billboard, bookingDetails, onClose }: Book
                 <div className="space-y-6 pb-10 border-b border-slate-50 dark:border-slate-800">
                    <div className="flex gap-4">
                       <div className="h-20 w-20 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
-                         <img src={billboard.imageUrl} className="w-full h-full object-cover" />
+                         <img src={billboard.image} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex flex-col justify-center">
                          <p className="text-[8px] font-black text-indigo-600 uppercase tracking-widest mb-1">Contracted Entity</p>

@@ -1,20 +1,18 @@
 'use client';
-import React, { useState, useMemo } from 'react';
-import { 
-  ArrowLeft, 
-  MapPin, 
-  Play, 
-  ExternalLink, 
-  ShoppingCart, 
-  MessageSquare, 
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  ArrowLeft,
+  MapPin,
+  Play,
+  ShoppingCart,
+  MessageSquare,
   Send,
   X,
   CheckCircle2,
   Info,
-  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Billboard, billboardData } from '../types';
+import { Billboard } from '../types';
 import { cn } from '../lib/utils';
 import { BookingPage } from './BookingPage';
 import { BookingConfirmation } from './BookingConfirmation';
@@ -26,6 +24,8 @@ interface BillboardDetailProps {
 }
 
 export default function BillboardDetail({ billboard, onBack }: BillboardDetailProps) {
+
+  const [billboards, setBillboards] = useState<Billboard[]>([]);
   const [viewState, setViewState] = useState<'detail' | 'schedule' | 'booking' | 'confirmation'>('detail');
   const [scheduleData, setScheduleData] = useState<any>(null);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
@@ -33,19 +33,84 @@ export default function BillboardDetail({ billboard, onBack }: BillboardDetailPr
   const [messageText, setMessageText] = useState('');
   const [sent, setSent] = useState(false);
 
+  // ✅ FETCH DATA
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/billboards")
+      .then(res => res.json())
+      .then(data => setBillboards(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  // ✅ IMAGES
   const images = useMemo(() => [
-    billboard.imageUrl, 
+    billboard.image,
     ...(billboard.additionalImages || [])
   ].filter(Boolean), [billboard]);
 
-  const similarBillboards = useMemo(() => 
-    billboardData.filter(b => b.id !== billboard.id && b.location === billboard.location).slice(0, 3)
-  , [billboard]);
+  // ✅ DISTANCE FUNCTION
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) *
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) ** 2;
+
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // ✅ FIXED SIMILAR BILLBOARDS
+const similarBillboards = useMemo(() => {
+  if (!billboard) return [];
+
+  return billboards
+    .filter((b: Billboard) => {
+      // ❌ skip itself
+      if (b.id === billboard.id) return false;
+
+      // ✅ normalize values (VERY IMPORTANT)
+      const lat1 = Number(billboard.latitude);
+      const lon1 = Number(billboard.longitude);
+      const lat2 = Number(b.latitude);
+      const lon2 = Number(b.longitude);
+
+      // ✅ CASE 1: If coordinates exist → use distance
+      if (!isNaN(lat1) && !isNaN(lon1) && !isNaN(lat2) && !isNaN(lon2)) {
+        const distance = getDistance(lat1, lon1, lat2, lon2);
+        return distance < 200; // 🔥 wider radius (adjust later)
+      }
+
+      // ✅ CASE 2: fallback → same neighborhood
+      if (b.neighborhood && billboard.neighborhood) {
+        return (
+          b.neighborhood.toLowerCase() ===
+          billboard.neighborhood.toLowerCase()
+        );
+      }
+
+      // ❌ otherwise reject
+      return false;
+    })
+    .slice(0, 3);
+}, [billboard, billboards]);
+
+  console.log("ALL:", billboards);
+  console.log("CURRENT:", billboard);
+  console.log("SIMILAR:", similarBillboards);
+
+  // ---------------------------
+  // HANDLERS
+  // ---------------------------
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim()) return;
+
     setSent(true);
+
     setTimeout(() => {
       setSent(false);
       setMessageText('');
@@ -63,25 +128,46 @@ export default function BillboardDetail({ billboard, onBack }: BillboardDetailPr
     setViewState('confirmation');
   };
 
- if (viewState === 'schedule') {
-  return (
-    
-    <ScheduleScreen
-      billboard={billboard}
-      onBack={() => setViewState('detail')}
-      onContinue={handleScheduleConfirm}
-    />
-  );
-}
+  // ---------------------------
+  // VIEW STATES
+  // ---------------------------
+
+  if (viewState === 'schedule') {
+    return (
+      <ScheduleScreen
+        billboard={billboard}
+        onBack={() => setViewState('detail')}
+        onContinue={handleScheduleConfirm}
+      />
+    );
+  }
 
   if (viewState === 'booking') {
-    return <BookingPage billboard={billboard} scheduleDetails={scheduleData} onBack={() => setViewState('schedule')} onConfirm={handleBookingConfirm} />;
+    return (
+      <BookingPage
+        billboard={billboard}
+        scheduleDetails={scheduleData}
+        onBack={() => setViewState('schedule')}
+        onConfirm={handleBookingConfirm}
+      />
+    );
   }
 
   if (viewState === 'confirmation') {
-    return <BookingConfirmation billboard={billboard} bookingDetails={bookingDetails} onClose={onBack} />;
+    return (
+      <BookingConfirmation
+        billboard={billboard}
+        bookingDetails={bookingDetails}
+        onClose={onBack}
+      />
+    );
   }
 
+  // ---------------------------
+  // UI
+  // ---------------------------
+
+ 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -307,36 +393,52 @@ export default function BillboardDetail({ billboard, onBack }: BillboardDetailPr
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-             {similarBillboards.map((b) => (
-               <motion.div 
-                 key={b.id}
-                 whileHover={{ y: -15 }}
-                 className="bg-white dark:bg-brand-card rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer flex flex-col"
-               >
-                 <div className="h-56 relative overflow-hidden">
-                    <img src={b.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={b.location} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
-                       {b.category} Hub
-                    </div>
-                 </div>
-                 <div className="p-10 flex-grow flex flex-col">
-                    <div className="flex-grow">
-                       <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-1">{b.location}</h3>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{b.neighborhood}</p>
-                    </div>
-                    <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
-                       <div>
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Standard Rate</p>
-                          <span className="text-xl font-black text-indigo-600">${b.pricePerMonth}<span className="text-xs text-slate-400">/M</span></span>
-                       </div>
-                       <button className="h-12 w-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
-                          <ArrowLeft className="rotate-180" size={20} />
-                       </button>
-                    </div>
-                 </div>
-               </motion.div>
-             ))}
+            {similarBillboards.map((b) => (
+  <motion.div
+    key={b.id}
+    whileHover={{ y: -15 }}
+    className="bg-white dark:bg-brand-card rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer flex flex-col"
+  >
+    <div className="h-56 relative overflow-hidden">
+      <img
+        src={b.image}
+        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+        alt={b.location}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
+        {b.category} Hub
+      </div>
+    </div>
+
+    <div className="p-10 flex-grow flex flex-col">
+      <div className="flex-grow">
+        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-1">
+          {b.location}
+        </h3>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          {b.neighborhood}
+        </p>
+      </div>
+
+      <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
+        <div>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Standard Rate
+          </p>
+          <span className="text-xl font-black text-indigo-600">
+            ${b.pricePerMonth}
+            <span className="text-xs text-slate-400">/M</span>
+          </span>
+        </div>
+
+        <button className="h-12 w-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
+          <ArrowLeft className="rotate-180" size={20} />
+        </button>
+      </div>
+    </div>
+  </motion.div>
+))}
           </div>
         </div>
       </section>

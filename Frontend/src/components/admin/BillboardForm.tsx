@@ -35,7 +35,7 @@ export default function BillboardForm({
         pricePerMonth: initialData.pricePerMonth || "",
       });
 
-      setPreview(initialData.imageUrl); // show existing image
+      setPreview(initialData.image); // show existing image
     }
   }, [initialData]);
 

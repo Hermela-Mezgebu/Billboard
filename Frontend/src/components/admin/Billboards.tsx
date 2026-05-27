@@ -165,7 +165,7 @@ export default function Billboards({ onSelect }: BillboardsProps) {
             <tr key={item.id}>
               <td>
                 <img
-                  src={(item as any).imageUrl || "/placeholder.jpg"}
+                  src={(item as any).image || "/placeholder.jpg"}
                   className="h-16"
                 />
               </td>

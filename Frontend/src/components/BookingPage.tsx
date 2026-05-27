@@ -143,7 +143,7 @@ const handleSubmit = (e: React.FormEvent) => {
           <div className="lg:col-span-4">
             <div className="sticky top-40 bg-white dark:bg-brand-card rounded-[3rem] p-10 shadow-2xl border border-slate-100 dark:border-slate-800">
                <div className="h-48 w-full rounded-[2rem] overflow-hidden mb-8 relative">
-                  <img src={billboard.imageUrl} className="w-full h-full object-cover" alt="Preview" />
+                  <img src={billboard.image} className="w-full h-full object-cover" alt="Preview" />
                   <div className="absolute top-4 left-4 px-4 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest">
                     Selected Site
                   </div>

@@ -62,22 +62,29 @@ export default function Billboards({ onSelect }: BillboardsProps) {
       // ✅ FIX: ensure it's array
       const safeData = Array.isArray(data) ? data : data.data || [];
 
-      const normalized = safeData.map((b: any) => ({
-        id: b.id,
-        title: b.title || "Billboard",
-        location: b.location || "",
-        image:
-          b.image ||
-          b.image_url ||
-          (Array.isArray(b.images) ? b.images[0] : "") ||
-          "/placeholder.jpg",
+    const BASE_URL = "http://127.0.0.1:8000";
 
-        neighborhood: b.neighborhood || b.location || "Unknown Area",
-        description: b.description || "No description available",
-        pricePerMonth: Number(b.price || 1000),
+const normalized = data.map((b: any) => ({
+  id: b.id,
+  title: b.title || "Billboard",
+  location: b.location || "",
 
-        category: b.type || "Digital",
-      }));
+  // ✅ FIX IMAGE URL
+  image:
+    b.image
+      ? `${BASE_URL}/storage/${b.image}`
+      : b.image_url
+      ? b.image_url
+      : Array.isArray(b.images) && b.images.length > 0
+      ? `${BASE_URL}/storage/${b.images[0]}`
+      : "/placeholder.jpg",
+
+  neighborhood: b.neighborhood || b.location || "Unknown Area",
+  description: b.description || "No description available",
+  pricePerMonth: Number(b.price || 1000),
+
+  category: b.type || "Digital",
+}));
 
       setBillboards(normalized);
     } catch (err) {

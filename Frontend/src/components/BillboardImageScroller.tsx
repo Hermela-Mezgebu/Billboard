@@ -40,7 +40,7 @@ export default function BillboardImageScroller({ onSelect }: Props) {
           >
             {/* IMAGE */}
             <motion.img
-              src={billboard.imageUrl}
+              src={billboard.image}
               alt={billboard.neighborhood}
               className="w-full h-full object-cover"
               style={{
