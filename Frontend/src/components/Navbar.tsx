@@ -15,7 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/utils";
 import NotificationBell from "@/components/NotificationBell";
-
+import Link from "next/link";
 interface NavbarProps {
   onOpenAuth: (mode: "login" | "signup" | "role") => void;
   onNavigate: (page: string) => void;
@@ -24,7 +24,7 @@ interface NavbarProps {
 
 export function Navbar({ onOpenAuth, onNavigate, currentPage }: NavbarProps) {
   const [isDark, setIsDark] = useState(true);
-  const [cartCount] = useState(4);
+ const [cartCount, setCartCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -66,6 +66,35 @@ export function Navbar({ onOpenAuth, onNavigate, currentPage }: NavbarProps) {
       document.documentElement.classList.remove("dark");
     }
   }, [isDark]);
+
+  // ✅ UPDATE CART COUNT WHEN TAB FOCUSED
+useEffect(() => {
+  const handleFocus = () => {
+    const stored = localStorage.getItem("cart");
+    const cart = stored ? JSON.parse(stored) : [];
+    setCartCount(cart.length);
+  };
+
+  window.addEventListener("focus", handleFocus);
+
+  return () => window.removeEventListener("focus", handleFocus);
+}, []);
+
+  // ✅ LOAD CART COUNT
+useEffect(() => {
+  const updateCart = () => {
+    const stored = localStorage.getItem("cart");
+    const cart = stored ? JSON.parse(stored) : [];
+    setCartCount(cart.length);
+  };
+
+  updateCart();
+
+  // ✅ listen for cart changes (important for real-time update)
+  window.addEventListener("storage", updateCart);
+
+  return () => window.removeEventListener("storage", updateCart);
+}, []);
 
   // ✅ INITIALS
   const getInitials = (name: string) => {
@@ -146,14 +175,16 @@ export function Navbar({ onOpenAuth, onNavigate, currentPage }: NavbarProps) {
           {isLoggedIn && <NotificationBell />}
 
           {/* CART */}
-          <div className="flex items-center gap-1 text-sm">
-            <span>Cart</span>
-            {cartCount > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] text-white">
-                {cartCount}
-              </span>
-            )}
-          </div>
+          <Link href="/cart">
+            <div className="flex items-center gap-1 text-sm">
+              <span>Cart</span>
+              {cartCount > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] text-white">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+          </Link>
 
           {/* PROFILE OR AUTH */}
           {isLoggedIn ? (

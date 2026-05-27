@@ -1,70 +1,104 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronDown, LayoutGrid, List as ListIcon } from "lucide-react";
 
 import BillboardCard from "@/components/BillboardCard";
 import { Pagination } from "@/components/Pagination";
 import BillboardDetail from "@/components/BillboardDetail";
-import { billboardData, type Billboard } from "@/types";
-import { billboardService } from "@/services/api";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import FAQ from "@/components/FAQ";
 import Testimonials from "@/components/Testimonials";
+import { useRouter } from "next/navigation";
+import { Billboard } from "@/types";
 
-export default function ClientPage() {
+
+export default function Home() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [billboards, setBillboards] = useState<Billboard[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const router = useRouter();
+ const [paginatedData, setPaginatedData] = useState<Billboard[]>([]);
   const [selectedBillboard, setSelectedBillboard] =
     useState<Billboard | null>(null);
+
   const [viewState, setViewState] = useState<"detail" | "schedule">("detail");
-  const [billboards, setBillboards] = useState<Billboard[]>([]);
-  const [paginatedData, setPaginatedData] = useState<Billboard[]>([]); // ✅ FIX 1
-  const [loading, setLoading] = useState(true);
 
   const categories = ["All", "Digital", "Static", "Premium", "Smart"];
 
-  // ✅ FETCH DATA
+  // ✅ FETCH APPROVED BILLBOARDS
   useEffect(() => {
-    const fetchBillboards = async () => {
+    const load = async () => {
       try {
-        setLoading(true);
-        const data = await billboardService.getPublicBillboards();
+        const res = await fetch(
+          "http://127.0.0.1:8000/api/billboards?status=approved"
+        );
 
-        const approvedBillboards = Array.isArray(data)
-          ? data.filter((b: any) => b.status === "approved")
-          : [];
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("API ERROR:", text);
+          throw new Error("Failed to fetch");
+        }
 
-        setBillboards(approvedBillboards);
+        const raw = await res.json();
+        const data = Array.isArray(raw) ? raw : raw?.data || [];
+
+    const BASE_URL = "http://127.0.0.1:8000";
+
+const normalized = data.map((b: any) => ({
+  id: b.id,
+  title: b.title || "Billboard",
+  location: b.location || "",
+
+  // ✅ FIX IMAGE URL
+  image:
+    b.image
+      ? `${BASE_URL}/storage/${b.image}`
+      : b.image_url
+      ? b.image_url
+      : Array.isArray(b.images) && b.images.length > 0
+      ? `${BASE_URL}/storage/${b.images[0]}`
+      : "/placeholder.jpg",
+
+  neighborhood: b.neighborhood || b.location || "Unknown Area",
+  description: b.description || "No description available",
+  pricePerMonth: Number(b.price || 1000),
+
+  category: b.type || "Digital",
+}));
+
+        setBillboards(normalized);
       } catch (err) {
-        console.error("Error fetching billboards:", err);
-        setBillboards(billboardData);
+        console.error("LOAD ERROR:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBillboards();
+    load();
   }, []);
 
-  // ✅ FILTER
-  const filteredBillboards: Billboard[] =
-    activeCategory === "All"
-      ? billboards
-      : billboards.filter((b) => b.category === activeCategory);
-
-  // ✅ INITIAL PAGE LOAD (IMPORTANT)
-  useEffect(() => {
-    setPaginatedData(filteredBillboards.slice(0, 6));
-  }, [filteredBillboards]);
+  // ✅ FILTER REAL DATA
+  const filteredBillboards = useMemo(() => {
+    return billboards.filter((b) => {
+      return (
+        activeCategory === "All" ||
+        b.category.toLowerCase() === activeCategory.toLowerCase()
+      );
+    });
+  }, [billboards, activeCategory]);
 
   return (
     <div className="min-h-screen">
       <main>
+        {/* DETAIL VIEW */}
         {selectedBillboard ? (
           <BillboardDetail
             billboard={selectedBillboard}
+            
             onBack={() => {
               setSelectedBillboard(null);
               setViewState("detail");
@@ -97,26 +131,35 @@ export default function ClientPage() {
                 className="space-y-6 px-6"
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
               >
-                <h1 className="text-4xl md:text-6xl font-black">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black">
                   Outdoor Advertising Agency
                 </h1>
 
-                <h2 className="text-2xl md:text-4xl text-indigo-400">
+                <h2 className="text-2xl md:text-4xl text-indigo-400 font-semibold">
                   Billboard Platform
                 </h2>
+
+                <button
+                  onClick={() => router.push("/billboards")}
+                  className="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-xl font-semibold cursor-pointer"
+                >
+                  Explore Billboards
+                </button>
               </motion.div>
             </section>
 
             {/* CONTENT */}
             <div className="mx-auto max-w-7xl px-4 py-12">
-              {/* FILTERS */}
               <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:justify-between">
-                <h2 className="text-3xl font-bold">Our Billboards</h2>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+                  Our Billboards
+                </h2>
 
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Categories */}
-                  <div className="flex rounded-lg bg-slate-100 p-1">
+                  <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
                     {categories.map((cat) => (
                       <button
                         key={cat}
@@ -150,6 +193,7 @@ export default function ClientPage() {
                     </button>
                   </div>
 
+                  {/* Sort */}
                   <button className="flex items-center gap-2 border px-3 py-1 rounded-lg">
                     Sort <ChevronDown size={16} />
                   </button>
@@ -158,7 +202,11 @@ export default function ClientPage() {
 
               {/* GRID */}
               {loading ? (
-                <p className="text-center">Loading...</p>
+                <p className="text-center text-gray-400">Loading...</p>
+              ) : filteredBillboards.length === 0 ? (
+                <p className="text-center text-gray-400">
+                  No approved billboards available
+                </p>
               ) : (
                 <div
                   className={cn(
@@ -168,28 +216,47 @@ export default function ClientPage() {
                       : "grid-cols-1"
                   )}
                 >
-                  {paginatedData.map((billboard: Billboard) => (
-                    <BillboardCard
-                      key={billboard.id}
-                      billboard={billboard}
-                      onClick={(b) => {
-                        setSelectedBillboard(b);
-                        setViewState("detail");
-                      }}
-                      onScheduleClick={(b) => {
-                        setSelectedBillboard(b);
-                        setViewState("schedule");
-                      }}
-                    />
-                  ))}
+                {paginatedData.map((billboard) => (
+  <BillboardCard
+    key={billboard.id}
+    billboard={billboard}
+    onClick={(b: any) => {
+      setSelectedBillboard({
+        id: b.id,
+        title: b.title || "Billboard",
+        location: b.location || "",
+        image: b.image || "/placeholder.jpg",
+        neighborhood: b.neighborhood || b.location || "Unknown Area",
+        description: b.description || "No description available",
+        pricePerMonth: Number(b.pricePerMonth || b.price || 0),
+        category: b.category || "Digital",
+      });
+      setViewState("detail");
+    }}
+  
+    onScheduleClick={(b: any) => {
+      setSelectedBillboard({
+        id: b.id,
+        title: b.title || "Billboard",
+        location: b.location || "",
+        image: b.image || "/placeholder.jpg",
+        neighborhood: b.neighborhood || b.location || "Unknown Area",
+        description: b.description || "No description available",
+        pricePerMonth: Number(b.pricePerMonth || b.price || 0),
+        category: b.category || "Digital",
+      });
+      setViewState("schedule");
+    }}
+  />
+))}
                 </div>
               )}
 
-              {/* ✅ FIX 2: CONNECT PAGINATION */}
-              <Pagination
-                billboards={filteredBillboards}
-                onChange={(data) => setPaginatedData(data)}
-              />
+ <Pagination
+  billboards={filteredBillboards}
+  onChange={(data) => setPaginatedData(data)}
+/>
+
             </div>
           </>
         )}

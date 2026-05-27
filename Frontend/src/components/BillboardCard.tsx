@@ -72,15 +72,40 @@ const router = useRouter();
           </table>
         </div>
 
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    router.push(`/billboards/${billboard.id}/schedule-screen`);
-  }}
-  className="block w-full bg-blue-500 text-white py-2 rounded-md mt-3 hover:bg-blue-600 cursor-pointer"
->
-  Schedule
-</button>
+<div className="flex gap-3 mt-3">
+  {/* SCHEDULE BUTTON */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      router.push(`/billboards/${billboard.id}/schedule-screen`);
+    }}
+    className="w-1/2 bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 cursor-pointer"
+  >
+    Schedule
+  </button>
+
+  {/* ADD TO CART BUTTON */}
+  <button
+    onClick={() => {
+      const stored = localStorage.getItem("cart");
+      const cart = stored ? JSON.parse(stored) : [];
+
+      const exists = cart.find((i: any) => i.id === billboard.id);
+      if (exists) return alert("Already in cart");
+
+      cart.push(billboard);
+      localStorage.setItem("cart", JSON.stringify(cart));
+
+      // 🔥 update navbar count instantly
+      window.dispatchEvent(new Event("storage"));
+
+      alert("Added to cart");
+    }}
+    className="w-1/2 bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700"
+  >
+    Add to Cart
+  </button>
+</div>
       </div>
     </div>
   );
