@@ -64,35 +64,31 @@ export default function BillboardDetail({ billboard, onBack }: BillboardDetailPr
 
   // ✅ FIXED SIMILAR BILLBOARDS
 const similarBillboards = useMemo(() => {
-  if (!billboard) return [];
+  if (!billboard || billboards.length === 0) return [];
+
+  const normalize = (val: any) =>
+    (val || "")
+      .toString()
+      .toLowerCase()
+      .replace(/,/g, "")
+      .trim();
+
+  const currentLocation = normalize(billboard.location);
+  const currentNeighborhood = normalize(billboard.neighborhood);
 
   return billboards
     .filter((b: Billboard) => {
-      // ❌ skip itself
       if (b.id === billboard.id) return false;
 
-      // ✅ normalize values (VERY IMPORTANT)
-      const lat1 = Number(billboard.latitude);
-      const lon1 = Number(billboard.longitude);
-      const lat2 = Number(b.latitude);
-      const lon2 = Number(b.longitude);
+      const otherLocation = normalize(b.location);
+      const otherNeighborhood = normalize(b.neighborhood);
 
-      // ✅ CASE 1: If coordinates exist → use distance
-      if (!isNaN(lat1) && !isNaN(lon1) && !isNaN(lat2) && !isNaN(lon2)) {
-        const distance = getDistance(lat1, lon1, lat2, lon2);
-        return distance < 200; // 🔥 wider radius (adjust later)
-      }
-
-      // ✅ CASE 2: fallback → same neighborhood
-      if (b.neighborhood && billboard.neighborhood) {
-        return (
-          b.neighborhood.toLowerCase() ===
-          billboard.neighborhood.toLowerCase()
-        );
-      }
-
-      // ❌ otherwise reject
-      return false;
+      // ✅ SMART MATCHING (LIKE REAL SITES)
+      return (
+        otherLocation.includes(currentLocation) ||
+        currentLocation.includes(otherLocation) ||
+        otherNeighborhood === currentNeighborhood
+      );
     })
     .slice(0, 3);
 }, [billboard, billboards]);
