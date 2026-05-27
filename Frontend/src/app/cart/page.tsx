@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Billboard } from "@/types";
-import { cn } from "@/lib/utils";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<Billboard[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ LOAD FROM LOCAL STORAGE
+  // ✅ LOAD CART
   useEffect(() => {
     const stored = localStorage.getItem("cart");
     if (stored) {
@@ -16,14 +16,57 @@ export default function CartPage() {
     }
   }, []);
 
+  // ✅ HANDLE BOOKING (FIXED)
+  const handleBooking = async () => {
+    try {
+      if (cartItems.length === 0) {
+        return alert("Cart is empty");
+      }
+
+      setIsSubmitting(true);
+
+      const res = await fetch("http://127.0.0.1:8000/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          billboards: cartItems.map((item) => item.id), // ✅ FIXED (send all IDs)
+        }),
+      });
+
+      const data = await res.json();
+
+      // ✅ REDIRECT TO CHAPA
+      if (data.checkout_url) {
+        // clear cart before redirect
+        localStorage.removeItem("cart");
+        window.dispatchEvent(new Event("storage")); // update navbar
+
+        window.location.href = data.checkout_url;
+      } else {
+        alert("Payment link not found");
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      alert("Booking failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // ✅ REMOVE ITEM
   const removeItem = (id: number) => {
     const updated = cartItems.filter((item) => item.id !== id);
     setCartItems(updated);
     localStorage.setItem("cart", JSON.stringify(updated));
+
+    // update navbar
+    window.dispatchEvent(new Event("storage"));
   };
 
-  // ✅ TOTAL PRICE
+  // ✅ TOTAL
   const total = cartItems.reduce(
     (sum, item) => sum + Number(item.pricePerMonth || 0),
     0
@@ -37,6 +80,8 @@ export default function CartPage() {
         <p className="text-gray-400">Your cart is empty.</p>
       ) : (
         <div className="grid gap-6">
+
+          {/* ITEMS */}
           {cartItems.map((item) => (
             <div
               key={item.id}
@@ -78,8 +123,12 @@ export default function CartPage() {
           </div>
 
           {/* CHECKOUT */}
-          <button className="mt-6 w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700">
-            Proceed to Checkout
+          <button
+            onClick={handleBooking}
+            disabled={isSubmitting}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            {isSubmitting ? "Processing..." : "Proceed to Payment"}
           </button>
         </div>
       )}
