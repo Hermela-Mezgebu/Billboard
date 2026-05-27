@@ -5,7 +5,7 @@ import React from "react";
 interface Testimonial {
   name: string;
   username: string;
-  image: string;
+  image?: string;
   content: string;
   likes: number;
   comments: number;

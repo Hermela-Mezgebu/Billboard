@@ -59,32 +59,32 @@ export default function AdminDashboard() {
 
       <div className="grid gap-6">
         {billboards.map((b) => (
-          <div key={b.id} className="border p-4 rounded-lg">
-            <img
-              src={`http://127.0.0.1:8000/storage/${b.image}`}
-              className="w-full h-48 object-cover"
-            />
+  <div key={b.id} className="border p-4 rounded-lg">
+    <img
+      src={`http://127.0.0.1:8000/storage/${b.image}`}
+      className="w-full h-48 object-cover"
+    />
 
-            <h2 className="text-xl font-bold">{b.title}</h2>
-            <p>{b.location}</p>
+    <h2 className="text-xl font-bold">{b.title}</h2>
+    <p>{b.location}</p>
 
-            <div className="flex gap-4 mt-4">
-              <button
-                onClick={() => approve(b.id)}
-                className="bg-green-500 text-white px-4 py-2"
-              >
-                Approve
-              </button>
+    <div className="flex gap-4 mt-4">
+      <button
+        onClick={() => approve(b.id)}
+        className="bg-green-500 text-white px-4 py-2"
+      >
+        Approve
+      </button>
 
-              <button
-                onClick={() => reject(b.id)}
-                className="bg-red-500 text-white px-4 py-2"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        ))}
+      <button
+        onClick={() => reject(b.id)}
+        className="bg-red-500 text-white px-4 py-2"
+      >
+        Reject
+      </button>
+    </div>
+  </div>
+))}
       </div>
     </div>
   );

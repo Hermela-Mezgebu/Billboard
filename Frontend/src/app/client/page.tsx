@@ -16,23 +16,22 @@ import Testimonials from "@/components/Testimonials";
 export default function ClientPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [selectedBillboard, setSelectedBillboard] = useState<Billboard | null>(
-    null,
-  );
+  const [selectedBillboard, setSelectedBillboard] =
+    useState<Billboard | null>(null);
   const [viewState, setViewState] = useState<"detail" | "schedule">("detail");
   const [billboards, setBillboards] = useState<Billboard[]>([]);
+  const [paginatedData, setPaginatedData] = useState<Billboard[]>([]); // ✅ FIX 1
   const [loading, setLoading] = useState(true);
 
   const categories = ["All", "Digital", "Static", "Premium", "Smart"];
 
-  // ✅ FETCH APPROVED BILLBOARDS ONLY
+  // ✅ FETCH DATA
   useEffect(() => {
     const fetchBillboards = async () => {
       try {
         setLoading(true);
         const data = await billboardService.getPublicBillboards();
 
-        // ✅ Ensure we only have approved billboards
         const approvedBillboards = Array.isArray(data)
           ? data.filter((b: any) => b.status === "approved")
           : [];
@@ -40,7 +39,6 @@ export default function ClientPage() {
         setBillboards(approvedBillboards);
       } catch (err) {
         console.error("Error fetching billboards:", err);
-        // ✅ Fallback to mock data if API fails
         setBillboards(billboardData);
       } finally {
         setLoading(false);
@@ -50,15 +48,20 @@ export default function ClientPage() {
     fetchBillboards();
   }, []);
 
+  // ✅ FILTER
   const filteredBillboards: Billboard[] =
     activeCategory === "All"
       ? billboards
       : billboards.filter((b) => b.category === activeCategory);
 
+  // ✅ INITIAL PAGE LOAD (IMPORTANT)
+  useEffect(() => {
+    setPaginatedData(filteredBillboards.slice(0, 6));
+  }, [filteredBillboards]);
+
   return (
     <div className="min-h-screen">
       <main>
-        {/* ✅ DETAIL / SCHEDULE VIEW */}
         {selectedBillboard ? (
           <BillboardDetail
             billboard={selectedBillboard}
@@ -94,32 +97,26 @@ export default function ClientPage() {
                 className="space-y-6 px-6"
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
               >
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black">
+                <h1 className="text-4xl md:text-6xl font-black">
                   Outdoor Advertising Agency
                 </h1>
 
-                <h2 className="text-2xl md:text-4xl text-indigo-400 font-semibold">
+                <h2 className="text-2xl md:text-4xl text-indigo-400">
                   Billboard Platform
                 </h2>
-
-                <button className="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-xl font-semibold">
-                  Explore Billboards
-                </button>
               </motion.div>
             </section>
 
             {/* CONTENT */}
             <div className="mx-auto max-w-7xl px-4 py-12">
+              {/* FILTERS */}
               <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:justify-between">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  Our Billboards
-                </h2>
+                <h2 className="text-3xl font-bold">Our Billboards</h2>
 
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Categories */}
-                  <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+                  <div className="flex rounded-lg bg-slate-100 p-1">
                     {categories.map((cat) => (
                       <button
                         key={cat}
@@ -128,7 +125,7 @@ export default function ClientPage() {
                           "rounded-md px-3 py-1.5 text-xs font-semibold",
                           activeCategory === cat
                             ? "bg-white text-indigo-600"
-                            : "text-slate-500",
+                            : "text-slate-500"
                         )}
                       >
                         {cat}
@@ -153,7 +150,6 @@ export default function ClientPage() {
                     </button>
                   </div>
 
-                  {/* Sort */}
                   <button className="flex items-center gap-2 border px-3 py-1 rounded-lg">
                     Sort <ChevronDown size={16} />
                   </button>
@@ -161,31 +157,39 @@ export default function ClientPage() {
               </div>
 
               {/* GRID */}
-              <div
-                className={cn(
-                  "grid gap-8",
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "grid-cols-1",
-                )}
-              >
-                {filteredBillboards.map((billboard) => (
-                  <BillboardCard
-                    key={billboard.id}
-                    billboard={billboard}
-                    onClick={(b) => {
-                      setSelectedBillboard(b);
-                      setViewState("detail");
-                    }}
-                    onScheduleClick={(b) => {
-                      setSelectedBillboard(b);
-                      setViewState("schedule"); // 🔥 THIS triggers schedule
-                    }}
-                  />
-                ))}
-              </div>
+              {loading ? (
+                <p className="text-center">Loading...</p>
+              ) : (
+                <div
+                  className={cn(
+                    "grid gap-8",
+                    viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1"
+                  )}
+                >
+                  {paginatedData.map((billboard: Billboard) => (
+                    <BillboardCard
+                      key={billboard.id}
+                      billboard={billboard}
+                      onClick={(b) => {
+                        setSelectedBillboard(b);
+                        setViewState("detail");
+                      }}
+                      onScheduleClick={(b) => {
+                        setSelectedBillboard(b);
+                        setViewState("schedule");
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
 
-              <Pagination />
+              {/* ✅ FIX 2: CONNECT PAGINATION */}
+              <Pagination
+                billboards={filteredBillboards}
+                onChange={(data) => setPaginatedData(data)}
+              />
             </div>
           </>
         )}

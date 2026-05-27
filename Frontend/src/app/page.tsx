@@ -11,19 +11,8 @@ import { motion } from "framer-motion";
 import FAQ from "@/components/FAQ";
 import Testimonials from "@/components/Testimonials";
 import { useRouter } from "next/navigation";
+import { Billboard } from "@/types";
 
-interface Billboard {
-  id: number;
-  title: string;
-  location: string;
-  image: string;
-
-  neighborhood: string;
-  description: string;
-  pricePerMonth: number;
-
-  category: string;
-}
 
 export default function Home() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -32,7 +21,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   const router = useRouter();
-
+ const [paginatedData, setPaginatedData] = useState<Billboard[]>([]);
   const [selectedBillboard, setSelectedBillboard] =
     useState<Billboard | null>(null);
 
@@ -227,7 +216,7 @@ const normalized = data.map((b: any) => ({
                       : "grid-cols-1"
                   )}
                 >
-                 {filteredBillboards.map((billboard) => (
+                {paginatedData.map((billboard) => (
   <BillboardCard
     key={billboard.id}
     billboard={billboard}
@@ -244,6 +233,7 @@ const normalized = data.map((b: any) => ({
       });
       setViewState("detail");
     }}
+  
     onScheduleClick={(b: any) => {
       setSelectedBillboard({
         id: b.id,
@@ -262,7 +252,11 @@ const normalized = data.map((b: any) => ({
                 </div>
               )}
 
-              <Pagination />
+ <Pagination
+  billboards={filteredBillboards}
+  onChange={(data) => setPaginatedData(data)}
+/>
+
             </div>
           </>
         )}

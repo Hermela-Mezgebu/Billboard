@@ -19,7 +19,7 @@ interface Billboard {
   id: number;
   title: string;
   location: string;
-  image: string;
+  image?: string;
 
   neighborhood: string;
   description: string;
