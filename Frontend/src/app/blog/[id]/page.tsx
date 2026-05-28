@@ -9,7 +9,7 @@ export default function BlogDetailPage() {
 
   const blog = blogs.find((b) => b.id === id);
 
-  // ❌ NOT FOUND
+
   if (!blog) {
     return (
       <div className="p-10 text-center text-red-400">
