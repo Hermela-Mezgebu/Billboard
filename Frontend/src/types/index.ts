@@ -39,7 +39,7 @@ longitude?: number;
   pricePerMonth: number;
 
   // ✅ EXTRA
-  category?: string;
+  category: string;
 
   // ✅ OWNER
   owner?: Owner;

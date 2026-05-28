@@ -24,6 +24,7 @@ export function AuthModal({
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
@@ -55,6 +56,13 @@ export function AuthModal({
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
+
+   if (mode === "signup") {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+    }
   setLoading(true);
 
   try {
@@ -63,65 +71,60 @@ const handleSubmit = async (e: React.FormEvent) => {
         ? "http://127.0.0.1:8000/api/register"
         : "http://127.0.0.1:8000/api/login";
 
-    const body =
-      mode === "signup"
-        ? {
-            name,
-            email,
-            password,
-            role: selectedRole,
-            license_number:
-              selectedRole === "owner" ? licenseNumber : null,
-          }
-        : { email, password };
+const body =
+        mode === "signup"
+          ? {
+              name,
+              email,
+              password,
+              password_confirmation: confirmPassword, // ✅ FIXED
+              role: selectedRole,
+              license_number:
+                selectedRole === "owner" ? licenseNumber : null,
+            }
+          : { email, password };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json", // ✅ VERY IMPORTANT
-      },
-      body: JSON.stringify(body),
-    });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(body),
+      });
 
-    // ✅ SAFE PARSE (FIXED)
-    const text = await res.text();
+      const text = await res.text();
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("NOT JSON:", text);
-      throw new Error("Server returned invalid response");
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("NOT JSON:", text);
+        throw new Error("Server returned invalid response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data.message || "Request failed");
+      }
+
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+
+      const role = data.user.role;
+
+      if (role === "admin") window.location.href = "/admin";
+      else if (role === "owner") window.location.href = "/owner";
+      else window.location.href = "/client";
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (!res.ok) {
-      throw new Error(data.message || "Login failed");
-    }
-
-    // ✅ STORE AUTH
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-    }
-
-    // ✅ ROLE REDIRECT
-    const role = data.user.role;
-
-    if (role === "admin") {
-      window.location.href = "/admin";
-    } else if (role === "owner") {
-      window.location.href = "/owner";
-    } else {
-      window.location.href = "/client";
-    }
-
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <AnimatePresence>
@@ -160,12 +163,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                 animate={{
                   x: mode === "signup" ? "0%" : "100%",
                 }}
-                className="hidden w-1/2 flex-col items-center justify-center bg-indigo-600 p-12 md:flex"
+                 className="hidden w-1/2 flex-col items-center justify-center p-12 md:flex bg-cover bg-center relative"
+  style={{ backgroundImage: "url('/auth-bg.jpg')" }}
               >
+                <div className="absolute inset-0 bg-black/50" />
+
+  <div className="relative z-10 flex flex-col items-center">
                 <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Rocket size={48} />
                 </div>
-
+</div>
                 <h2 className="mb-4 text-3xl font-bold">
                   Welcome to Billbox
                 </h2>
@@ -211,14 +218,25 @@ const handleSubmit = async (e: React.FormEvent) => {
                     className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
                   />
 
+                   {/* PASSWORD */}
                   <input
                     type="password"
                     placeholder="Password"
-                    value={password}
+                    value={password}   // ✅ FIXED
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
                   />
 
+                  {/* CONFIRM PASSWORD */}
+                  {/* <input
+                    type="password"
+                    placeholder="Repeat Password"
+                    value={confirmPassword}   // ✅ FIXED
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
+                  /> */}
+
+                  
                   {mode === "signup" && selectedRole === "owner" && (
   <input
     type="text"
@@ -228,6 +246,33 @@ const handleSubmit = async (e: React.FormEvent) => {
     className="w-full rounded-xl border border-gray-700 bg-slate-800 px-4 py-2"
   />
 )}
+
+{/* TERMS + FORGOT PASSWORD (ONE ROW) */}
+<div className="flex items-center justify-between text-sm text-gray-400">
+
+  {/* LEFT: TERMS */}
+  <div className="flex items-center gap-2">
+    <input type="checkbox" className="accent-indigo-600" />
+    <span>
+      Remember me
+      {/* <span className="text-indigo-400 cursor-pointer hover:underline">
+        Terms
+      </span> */}
+    </span>
+  </div>
+
+  {/* RIGHT: FORGOT PASSWORD */}
+  <button
+    type="button"
+    onClick={() => router.push("/auth/forgot-password")}
+    className="text-indigo-400 hover:underline"
+  >
+    Forgot Password?
+  </button>
+
+</div>
+               
+
 
                   {error && (
                     <p className="text-sm text-red-500">{error}</p>

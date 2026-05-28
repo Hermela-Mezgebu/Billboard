@@ -4,7 +4,7 @@ import { useState } from "react";
 import BlogCard from "@/components/BlogCard";
 import { Pagination } from "@/components/Pagination";
 import { motion } from "framer-motion";
-
+import { blogs } from "@/data/blogs";
 interface Blog {
   id: number;
   featuredImg: string;
@@ -15,57 +15,7 @@ interface Blog {
 }
 
 export default function BlogPage() {
-  const [blogs] = useState<Blog[]>([
-    {
-      id: 1,
-      featuredImg: "/img/billboard-1.jpg",
-      date: "Mar 14, 2025",
-      ownerImg: "/img/billboard-6.jpg",
-      ownerName: "BillOwner",
-      title: "Hello World",
-    },
-    {
-      id: 2,
-      featuredImg: "/img/billboard-6.jpg",
-      date: "Mar 14, 2025",
-      ownerImg: "/img/billboard-1.jpg",
-      ownerName: "BillOwner",
-      title: "Hello World",
-    },
-    {
-      id: 3,
-      featuredImg: "/img/billboard-1.jpg",
-      date: "Mar 14, 2025",
-      ownerImg: "/img/billboard-6.jpg",
-      ownerName: "BillOwner",
-      title: "Hello World",
-    },
-    {
-      id: 4,
-      featuredImg: "/img/billboard-6.jpg",
-      date: "Mar 14, 2025",
-      ownerImg: "/img/billboard-1.jpg",
-      ownerName: "BillOwner",
-      title: "Hello World",
-    },
-    {
-      id: 5,
-      featuredImg: "/img/billboard-1.jpg",
-      date: "Mar 14, 2025",
-      ownerImg: "/img/billboard-6.jpg",
-      ownerName: "BillOwner",
-      title: "Hello World",
-    },
-    {
-      id: 6,
-      featuredImg: "/img/billboard-6.jpg",
-      date: "Mar 14, 2025",
-      ownerImg: "/img/billboard-1.jpg",
-      ownerName: "BillOwner",
-      title: "Hello World",
-    },
-  ]);
-
+  
   return (
     <div className="w-full pt-40 pb-28 min-h-screen bg-black">
       <div className="mx-auto max-w-7xl px-6">

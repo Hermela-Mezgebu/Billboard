@@ -246,11 +246,11 @@ useEffect(() => {
           ) : (
             <div className="flex space-x-4">
               <button
-                onClick={() => onOpenAuth("signup")}
-                className="border px-4 py-2 rounded-md"
-              >
-                Sign Up
-              </button>
+  onClick={() => window.location.href = "/choose-role"}
+  className="border px-4 py-2 rounded-md"
+>
+  Sign Up
+</button>
 
               <button
                 onClick={() => onOpenAuth("login")}

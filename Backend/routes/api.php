@@ -13,6 +13,8 @@ use App\Http\Controllers\AdminBillboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
 
+
+use App\Http\Controllers\PasswordController;
 /*
 |--------------------------------------------------------------------------
 | AUTH ROUTES
@@ -20,7 +22,13 @@ use App\Http\Controllers\NotificationController;
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
+Route::post('/forgot-password', [PasswordController::class, 'forgot']);
+Route::post('/reset-password', [PasswordController::class, 'reset']);
+Route::post('/bookings', [BookingController::class, 'store']);
+Route::middleware('auth:api')->get('/me', [AuthController::class, 'me']);
+Route::get('/blogs/{id}', function ($id) {
+    return \App\Models\Blog::findOrFail($id);
+});
 /*
 |--------------------------------------------------------------------------
 | PUBLIC ROUTES

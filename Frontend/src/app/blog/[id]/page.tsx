@@ -1,46 +1,56 @@
-import { blogData } from "@/data/blogData";
-import Image from "next/image";
-import { notFound } from "next/navigation";
+"use client";
 
-export default function BlogDetails({ params }: { params: { id: string } }) {
-  const blog = blogData.find((b) => b.id === Number(params.id));
+import { useParams } from "next/navigation";
+import { blogs } from "@/data/blogs";
 
-  if (!blog) return notFound();
+export default function BlogDetailPage() {
+  const params = useParams();
+  const id = Number(params.id);
+
+  const blog = blogs.find((b) => b.id === id);
+
+  // ❌ NOT FOUND
+  if (!blog) {
+    return (
+      <div className="p-10 text-center text-red-400">
+        Blog not found
+      </div>
+    );
+  }
 
   return (
-    <section className="min-h-screen bg-slate-950 text-white px-6 py-24">
-      
-      <div className="max-w-4xl mx-auto space-y-10">
+    <div className="min-h-screen bg-black text-white">
 
-        {/* IMAGE */}
-        <div className="relative w-full h-[400px] rounded-2xl overflow-hidden">
-          <Image
-            src={blog.featuredImg}
-            alt={blog.title}
-            fill
-            className="object-cover"
+      {/* IMAGE */}
+      <div className="w-full h-[400px]">
+        <img
+          src={blog.featuredImg}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* CONTENT */}
+      <div className="max-w-4xl mx-auto p-8">
+
+        <h1 className="text-3xl font-bold mb-4">
+          {blog.title}
+        </h1>
+
+        <div className="text-gray-400 text-sm mb-6 flex items-center gap-3">
+          <img
+            src={blog.ownerImg}
+            className="w-8 h-8 rounded-full"
           />
-        </div>
-
-        {/* META */}
-        <div className="flex items-center gap-4 text-sm text-white/60">
-          <span>{blog.date}</span>
-          <span>•</span>
           <span>{blog.ownerName}</span>
-          <span className="bg-indigo-600 px-2 py-1 rounded text-xs">
-            {blog.category}
-          </span>
+          <span>•</span>
+          <span>{blog.date}</span>
         </div>
 
-        {/* TITLE */}
-        <h1 className="text-4xl font-bold">{blog.title}</h1>
-
-        {/* CONTENT */}
-        <p className="text-white/80 leading-relaxed whitespace-pre-line">
+        <p className="text-gray-300 leading-relaxed">
           {blog.content}
         </p>
 
       </div>
-    </section>
+    </div>
   );
 }
