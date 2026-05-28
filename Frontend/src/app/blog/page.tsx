@@ -35,7 +35,7 @@ export default function BlogPage() {
           </p>
         </motion.div>
 
-        {/* BLOG GRID */}
+        {/* BLOG GRIDS*/}
         <div className="mx-auto mt-10 grid max-w-2xl grid-cols-1 gap-8 sm:mt-12 lg:max-w-none lg:grid-cols-3">
           {blogs.map((blog) => (
             <BlogCard
