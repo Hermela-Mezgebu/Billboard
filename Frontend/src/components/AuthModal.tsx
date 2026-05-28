@@ -255,9 +255,7 @@ const body =
     <input type="checkbox" className="accent-indigo-600" />
     <span>
       Remember me
-      {/* <span className="text-indigo-400 cursor-pointer hover:underline">
-        Terms
-      </span> */}
+      
     </span>
   </div>
 
