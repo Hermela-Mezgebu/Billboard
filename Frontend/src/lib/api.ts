@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000/api";
+const API_URL = "http://127.0.0.1:8000/api";
 
 /* ================================
    HELPERS
@@ -121,9 +121,10 @@ export const safeFetch = async (url: string, options: any = {}) => {
 // api.ts or wherever it's defined
 export async function getBillboards(filter?: BillboardFilter) {
   const query = filter?.status ? `?status=${filter.status}` : "";
-  
-  const res = await fetch(`/api/billboards${query}`);
-  return res.json();
+
+  return safeFetch(`${API_URL}/billboards${query}`, {
+    headers: getHeaders(false),
+  });
 }
 
 /* =========================

@@ -45,7 +45,7 @@ export default function Billboards({ onSelect }: BillboardsProps) {
     const load = async () => {
       try {
         const res = await fetch(
-          "http://localhost:8000/api/billboards?status=approved"
+          "http://127.0.0.1:8000/api/billboards?status=approved"
         );
 
         if (!res.ok) {
@@ -54,9 +54,15 @@ export default function Billboards({ onSelect }: BillboardsProps) {
           throw new Error("Failed to fetch");
         }
 
-        const raw = await res.json();
-        const data = Array.isArray(raw) ? raw : raw?.data || [];
+       const text = await res.text();
 
+let data;
+try {
+  data = JSON.parse(text);
+} catch {
+  console.error("NOT JSON RESPONSE:", text);
+  throw new Error("Server returned HTML instead of JSON");
+}
         const BASE_URL = "http://localhost:8000";
 
         const normalized = data.map((b: any) => ({

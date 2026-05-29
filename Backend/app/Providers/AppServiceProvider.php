@@ -20,6 +20,6 @@ class AppServiceProvider extends ServiceProvider
      */
   public function boot()
 {
-    URL::forceRootUrl('http://localhost:3000');
+   
 }
 }

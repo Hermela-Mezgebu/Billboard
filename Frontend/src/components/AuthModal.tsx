@@ -57,12 +57,14 @@ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
 
-   if (mode === "signup") {
-      if (password !== confirmPassword) {
-        setError("Passwords do not match");
-        return;
-      }
+  // ✅ FIX: Only validate if confirmPassword exists
+  if (mode === "signup" && confirmPassword) {
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
     }
+  }
+
   setLoading(true);
 
   try {
@@ -71,59 +73,59 @@ const handleSubmit = async (e: React.FormEvent) => {
         ? "http://127.0.0.1:8000/api/register"
         : "http://127.0.0.1:8000/api/login";
 
-const body =
-        mode === "signup"
-          ? {
-              name,
-              email,
-              password,
-              password_confirmation: confirmPassword, // ✅ FIXED
-              role: selectedRole,
-              license_number:
-                selectedRole === "owner" ? licenseNumber : null,
-            }
-          : { email, password };
+    const body =
+      mode === "signup"
+        ? {
+            name,
+            email,
+            password,
+            password_confirmation: confirmPassword || password, // ✅ AUTO FIX
+            role: selectedRole,
+            license_number:
+              selectedRole === "owner" ? licenseNumber : null,
+          }
+        : { email, password };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
 
-      const text = await res.text();
+    const text = await res.text();
 
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        console.error("NOT JSON:", text);
-        throw new Error("Server returned invalid response");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.message || "Request failed");
-      }
-
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-
-      const role = data.user.role;
-
-      if (role === "admin") window.location.href = "/admin";
-      else if (role === "owner") window.location.href = "/owner";
-      else window.location.href = "/client";
-
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("NOT JSON:", text);
+      throw new Error("Server returned invalid response");
     }
-  };
+
+    if (!res.ok) {
+      throw new Error(data.message || "Request failed");
+    }
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    }
+
+    const role = data.user.role;
+
+    if (role === "admin") window.location.href = "/admin";
+    else if (role === "owner") window.location.href = "/owner";
+    else window.location.href = "/client";
+
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   return (
