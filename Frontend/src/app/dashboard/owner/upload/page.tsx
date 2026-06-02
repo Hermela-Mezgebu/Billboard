@@ -26,7 +26,7 @@ export default function UploadBillboard() {
     if (file) formData.append("media", file);
 
     try {
-      await axios.post("http://127.0.0.1:8000/api/billboards", formData, {
+      await axios.post("http://127.0.0.1:8000/api/owner/billboards", formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "multipart/form-data",

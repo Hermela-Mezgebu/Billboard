@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
-import { createBillboard, getBillboards } from "@/lib/api";
+import { createBillboard, getOwnerBillboards } from "@/lib/api"; // ✅ FIXED
 
 interface Billboard {
   id: number;
@@ -31,22 +31,22 @@ export default function Billboards() {
     type: "",
   });
 
-const normalizeBillboard = (b: any): Billboard => ({
-  id: b.id,
-  title: b.title,
-  location: b.location,
-  image: b.image
-    ? `http://127.0.0.1:8000/storage/${b.image}`
-    : "/placeholder.jpg",
-  description: b.description || "",
-  screenSize: b.screen_size || "",
-  status: b.status || "pending",
-  type: b.type || "",
-});
+  const normalizeBillboard = (b: any): Billboard => ({
+    id: b.id,
+    title: b.title,
+    location: b.location,
+    image: b.image
+      ? `http://127.0.0.1:8000/storage/${b.image}`
+      : "/placeholder.jpg",
+    description: b.description || "",
+    screenSize: b.screen_size || "",
+    status: b.status || "pending",
+    type: b.type || "",
+  });
 
   const loadBillboards = useCallback(async () => {
     try {
-      const res = await getBillboards();
+      const res = await getOwnerBillboards(); // ✅ FIXED HERE
 
       if (!Array.isArray(res)) {
         setList([]);
@@ -147,7 +147,6 @@ const normalizeBillboard = (b: any): Billboard => ({
       {/* FORM */}
       <div className="bg-[#0A192F] p-6 rounded-2xl border border-slate-700 text-white max-w-md">
 
-        {/* IMAGE */}
         <label className="h-40 w-full bg-slate-800 rounded-xl mb-4 flex items-center justify-center cursor-pointer">
           {media ? (
             <img
@@ -168,7 +167,6 @@ const normalizeBillboard = (b: any): Billboard => ({
           />
         </label>
 
-        {/* ✅ RESTORED INPUTS */}
         <input
           value={form.title}
           placeholder="Title"

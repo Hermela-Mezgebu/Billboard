@@ -105,28 +105,49 @@ useEffect(() => {
           />
         ) : (
           <>
-            {/* HERO */}
-            <section className="relative h-screen flex items-center justify-center text-white">
-              <div className="absolute inset-0 bg-[url('/img/billboard-1.jpg')] bg-cover" />
-              <div className="absolute inset-0 bg-black/60" />
+           {/* HERO */}
+<section className="relative h-screen flex items-center justify-center text-white overflow-hidden">
+  
+  {/* VIDEO BACKGROUND */}
+  <video
+    className="absolute inset-0 w-full h-full object-cover"
+    autoPlay
+    muted
+    loop
+    playsInline
+  >
+    <source
+      src="https://res.cloudinary.com/dzag6yjuq/video/upload/v1778415411/billboard1_2_ds0bkn.mp4"
+      type="video/mp4"
+    />
+  </video>
 
-              <motion.div
-                className="text-center z-10"
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <h1 className="text-5xl font-bold">
-                  Outdoor Advertising Agency
-                </h1>
+  {/* FALLBACK IMAGE (if video fails) */}
+   <source
+      src="https://res.cloudinary.com/dzag6yjuq/video/upload/v1778415411/billboard1_2_ds0bkn.mp4"
+      type="video/mp4"
+    />
+  {/* DARK OVERLAY */}
+  <div className="absolute inset-0 bg-black/60" />
 
-                <button
-                  onClick={() => router.push("/billboards")}
-                  className="mt-6 bg-indigo-600 px-6 py-3 rounded-xl"
-                >
-                  Explore Billboards
-                </button>
-              </motion.div>
-            </section>
+  {/* CONTENT */}
+  <motion.div
+    className="text-center z-10"
+    initial={{ opacity: 0, y: 40 }}
+    animate={{ opacity: 1, y: 0 }}
+  >
+    <h1 className="text-5xl font-bold">
+      Outdoor Advertising Agency
+    </h1>
+
+    <button
+      onClick={() => router.push("/billboards")}
+      className="mt-6 bg-indigo-600 px-6 py-3 rounded-xl"
+    >
+      Explore Billboards
+    </button>
+  </motion.div>
+</section>
 
             {/* CONTENT */}
             <div className="max-w-7xl mx-auto px-4 py-12">

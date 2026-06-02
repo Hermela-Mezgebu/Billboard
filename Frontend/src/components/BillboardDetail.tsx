@@ -35,7 +35,7 @@ export default function BillboardDetail({ billboard, onBack }: BillboardDetailPr
 
   // ✅ FETCH DATA
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/billboards")
+    fetch("http://127.0.0.1:8000/api/owner/billboards")
       .then(res => res.json())
       .then(data => setBillboards(data))
       .catch(err => console.error(err));

@@ -219,4 +219,11 @@ public function reject(Request $request, $id)
     {
         return Billboard::where('status', 'pending')->latest()->get();
     }
+
+    public function ownerBillboards(Request $request)
+{
+    return \App\Models\Billboard::where('owner_id', $request->user()->id)
+        ->latest()
+        ->get();
+}
 }

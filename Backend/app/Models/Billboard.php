@@ -3,30 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class Billboard extends Model
 {
-protected $fillable = [
-    'owner_id',
-    'title',
-    'location',
-    'description',
-    'type',
-    'category', // ✅ ADD THIS
-    'price',
-    'screen_size',
-    'duration',
-    'image',
-    'status',
-];
+    protected $fillable = [
+        'owner_id',
+        'title',
+        'location',
+        'description',
+        'type',
+        'category',
+        'price',
+        'screen_size',
+        'duration',
+        'image',
+        'status',
+    ];
 
     protected $casts = [
         'is_available' => 'boolean',
         'category' => 'string',
     ];
 
-    // ✅ RELATIONSHIPS
-
+    // ✅ OWNER RELATION (ONLY ONE — CLEAN)
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -37,8 +37,8 @@ protected $fillable = [
         return $this->hasMany(BillboardImage::class);
     }
 
-    public function orders()
+    public function bookings()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(Booking::class);
     }
 }

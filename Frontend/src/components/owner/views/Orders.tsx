@@ -3,282 +3,239 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ShoppingBag,
-  MapPin,
-  ExternalLink
+  History,
+  MoreVertical,
+  Clock,
+  ImageIcon,
 } from "lucide-react";
-import { cn } from "../../../lib/utils";
 
-/* ================= TYPES ================= */
 interface Order {
-  id: string;
+  id: number;
   client: string;
-  item: string;
-  type: string;
-  duration: string;
-  income: number;
-  status: "Live" | "Upcoming" | "Completed";
-  date: string;
-  progress: number;
+  billboard: string;
+  revenue: number;
+  status: string;
+  created_at: string;
 }
 
-/* ================= API ================= */
-async function getOwnerOrders(token: string | null): Promise<Order[]> {
-  try {
-    const res = await fetch("http://127.0.0.1:8000/api/owner/orders", {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token || ""}`, // ✅ FIXED
-      },
-      cache: "no-store", // ✅ CRITICAL FIX
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("API ERROR:", text);
-      return [];
-    }
-
-    const data = await res.json();
-
-    return Array.isArray(data)
-      ? data.map((o: any) => ({
-          id: o.id ?? "N/A",
-          client: o.client_name ?? "Unknown",
-          item: o.billboard_name ?? "Unknown Site",
-          type: o.type ?? "Static",
-          duration: o.duration ?? "N/A",
-          income: Number(o.amount ?? 0),
-          status: o.status ?? "Upcoming",
-          date: o.start_date ?? "N/A",
-          progress: Number(o.progress ?? 0),
-        }))
-      : [];
-  } catch (err) {
-    console.error("Orders fetch error:", err);
-    return [];
-  }
-}
-
-/* ================= COMPONENT ================= */
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [stats, setStats] = useState({
-    live: 0,
-    pending: 0,
-    reach: 0,
-  });
 
   const token =
     typeof window !== "undefined"
       ? localStorage.getItem("token")
       : null;
 
-  useEffect(() => {
-    async function load() {
+  /* ================= FETCH ORDERS ================= */
+  const fetchOrders = async () => {
+    try {
       setLoading(true);
 
-      const data = await getOwnerOrders(token);
+      const res = await fetch(
+        "http://127.0.0.1:8000/api/owner/bookings",
+        {
+          headers: {
+            Authorization: `Bearer ${token || ""}`,
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        }
+      );
 
-      setOrders(data);
+      if (!res.ok) {
+        console.error("API ERROR");
+        setOrders([]);
+        return;
+      }
 
-      /* ✅ CALCULATE REAL STATS */
-      const live = data.filter(o => o.status === "Live").length;
-      const pending = data.filter(o => o.status === "Upcoming").length;
+      const data = await res.json();
 
-      const reach = data.reduce((acc, o) => acc + o.progress * 1000, 0);
+      const mapped = data.map((o: any) => ({
+        id: o.id,
+        client: o.user?.name ?? "Unknown",
+        billboard: o.billboard?.title ?? "Unknown",
+        revenue: o.total_price ?? 0,
+        status: o.status,
+        created_at: o.created_at,
+      }));
 
-      setStats({
-        live,
-        pending,
-        reach,
-      });
-
+      setOrders(mapped);
+    } catch (err) {
+      console.error(err);
+      setOrders([]);
+    } finally {
       setLoading(false);
     }
+  };
 
-    load();
-  }, [token]); // ✅ re-run if token changes
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  /* ================= APPROVE ================= */
+  const approve = async (id: number) => {
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:8000/api/owner/bookings/${id}/approve`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token || ""}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Approve failed");
+        return;
+      }
+
+      // ✅ instant UI update (no reload)
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === id ? { ...o, status: "approved" } : o
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /* ================= REJECT ================= */
+  const reject = async (id: number) => {
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:8000/api/owner/bookings/${id}/reject`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token || ""}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Reject failed");
+        return;
+      }
+
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === id ? { ...o, status: "rejected" } : o
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-10"
-    >
+    <motion.div className="space-y-8">
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black dark:text-white uppercase tracking-tighter">
-            Campaign Console
+          <h2 className="text-3xl font-black uppercase tracking-tighter">
+            Campaign Orders
           </h2>
-          <p className="text-slate-500 font-medium mt-2">
-            Active rentals and upcoming reservations
+          <p className="text-slate-500 mt-2">
+            Manage booking requests from clients
+          </p>
+        </div>
+
+        <div className="flex px-6 py-4 bg-indigo-50 border rounded-2xl items-center gap-3">
+          <History size={18} className="text-indigo-600" />
+          <p className="text-xs font-black text-indigo-600 uppercase">
+            Live Booking Feed
           </p>
         </div>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          label="Live Campaigns"
-          value={stats.live.toString()}
-          sub="Active now"
-          color="text-indigo-600"
-        />
-        <StatCard
-          label="Pending Starts"
-          value={stats.pending.toString()}
-          sub="Upcoming bookings"
-          color="text-amber-600"
-        />
-        <StatCard
-          label="Network Reach"
-          value={`${(stats.reach / 1000000).toFixed(1)}M`}
-          sub="Estimated impressions"
-          color="text-green-600"
-        />
-      </div>
+      {/* LIST */}
+      <div className="space-y-6">
 
-      {/* TABLE */}
-      <div className="bg-white dark:bg-brand-card rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
+        {loading ? (
+          <p className="text-center text-gray-400">Loading...</p>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-20 border rounded-3xl">
+            <h3 className="text-lg font-bold">
+              No Orders Found
+            </h3>
+          </div>
+        ) : (
+          orders.map((o) => (
+            <div
+              key={o.id}
+              className="bg-white p-8 rounded-3xl border shadow-sm hover:shadow-xl transition-all"
+            >
+              <div className="flex flex-col lg:flex-row justify-between gap-6">
 
-        <div className="p-8 border-b flex items-center justify-between">
-          <span className="text-sm font-black text-indigo-600 uppercase tracking-widest">
-            Master Ledger
-          </span>
-          <ShoppingBag size={20} className="text-slate-300" />
-        </div>
+                {/* LEFT */}
+                <div className="flex gap-6 items-center">
+                  <div className="h-20 w-20 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <ImageIcon size={32} />
+                  </div>
 
-        <div className="flex-grow overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase">Client</th>
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase">Billboard</th>
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase">Progress</th>
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase">Revenue</th>
-                <th className="p-8"></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading && (
-                <tr>
-                  <td className="p-8 text-slate-400 text-sm">Loading...</td>
-                </tr>
-              )}
-
-              {!loading && orders.length === 0 && (
-                <tr>
-                  <td className="p-8 text-slate-400 text-sm">
-                    No orders found
-                  </td>
-                </tr>
-              )}
-
-              {orders.map(order => (
-                <tr key={order.id} className="border-b hover:bg-slate-50 transition">
-
-                  <td className="p-8">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-indigo-600">
-                        {order.client.charAt(0)}
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm font-black uppercase">
-                          {order.client}
-                        </h4>
-                        <p className="text-[10px] text-slate-400">
-                          {order.id} • {order.date}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="p-8">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={14} className="text-slate-400" />
-                      <span className="text-xs font-black uppercase">
-                        {order.item}
-                      </span>
-                    </div>
-                  </td>
-
-                  <td className="p-8">
-                    <div className="w-full max-w-[120px] space-y-2">
-                      <div className="flex justify-between text-[9px]">
-                        <span className={cn(
-                          order.status === "Live"
-                            ? "text-green-500"
-                            : "text-slate-400"
-                        )}>
-                          {order.status}
-                        </span>
-                        <span>{order.progress}%</span>
-                      </div>
-
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${order.progress}%` }}
-                          className={cn(
-                            "h-full",
-                            order.status === "Live"
-                              ? "bg-green-500"
-                              : "bg-slate-300"
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="p-8">
-                    <span className="text-sm font-black text-indigo-600">
-                      ${order.income.toLocaleString()}
-                    </span>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {order.duration}
+                  <div>
+                    <p className="text-xs text-gray-400">
+                      ID-{o.id}
                     </p>
-                  </td>
 
-                  <td className="p-8 text-right">
-                    <button className="h-12 w-12 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600">
-                      <ExternalLink size={20} />
-                    </button>
-                  </td>
+                    <h3 className="text-xl font-bold">
+                      {o.billboard}
+                    </h3>
 
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <p className="text-sm text-gray-500">
+                      Client: {o.client}
+                    </p>
+
+                    <p className="text-sm font-bold">
+                      ${o.revenue}
+                    </p>
+                  </div>
+                </div>
+
+                {/* RIGHT */}
+                <div className="flex items-center gap-4">
+
+                  {/* STATUS */}
+                  <div className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-xl text-xs font-bold">
+                    {o.status}
+                  </div>
+
+                  {/* ACTIONS */}
+                  {o.status === "pending" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => approve(o.id)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold"
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        onClick={() => reject(o.id)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  <button className="h-12 w-12 flex items-center justify-center border rounded-xl text-gray-400">
+                    <MoreVertical size={20} />
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          ))
+        )}
+
       </div>
     </motion.div>
-  );
-}
-
-/* ================= STAT CARD ================= */
-function StatCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  color: string;
-}) {
-  return (
-    <div className="bg-white dark:bg-brand-card p-8 rounded-[2.5rem] border shadow-sm">
-      <p className="text-[10px] text-slate-400 uppercase mb-2">{label}</p>
-      <h4 className={cn("text-3xl font-black", color)}>{value}</h4>
-      <p className="text-[10px] text-slate-500">{sub}</p>
-    </div>
   );
 }

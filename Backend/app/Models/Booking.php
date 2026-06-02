@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Booking extends Model
 {
- protected $fillable = [
+protected $fillable = [
     'billboard_id',
+    'owner_id', // ✅ REQUIRED
     'user_id',
     'start_date',
     'end_date',
     'total_price',
-    'seconds_per_day',
     'status'
 ];
 
@@ -25,4 +25,6 @@ class Booking extends Model
     {
         return $this->belongsTo(\App\Models\Billboard::class);
     }
+
+    
 }

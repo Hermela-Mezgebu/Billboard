@@ -229,6 +229,31 @@ export async function getOwnerDashboard() {
   });
 }
 
+export const getOwnerOrders = async () => {
+  return safeFetch(`${API_URL}/owner/bookings`, {
+    headers: getHeaders(), // ✅ includes token
+  });
+};
+
+export const getOwnerBillboards = async () => {
+  return safeFetch(`${API_URL}/owner/billboards`, {
+    headers: getHeaders(),
+  });
+};
+
+export const approveBooking = async (id: string | number) => {
+  return safeFetch(`${API_URL}/owner/bookings/${id}/approve`, {
+    method: "POST",
+    headers: getHeaders(), // ✅ IMPORTANT
+  });
+};
+
+export const rejectBooking = async (id: string | number) => {
+  return safeFetch(`${API_URL}/owner/bookings/${id}/reject`, {
+    method: "POST",
+    headers: getHeaders(), // ✅ IMPORTANT
+  });
+};
 export async function getDashboardStats() {
   return safeFetch(`${API_URL}/admin/dashboard`, {
     headers: getHeaders(),

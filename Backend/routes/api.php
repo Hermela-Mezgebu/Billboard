@@ -12,9 +12,8 @@ use App\Http\Controllers\OwnerDashboardController;
 use App\Http\Controllers\AdminBillboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
-
-
 use App\Http\Controllers\PasswordController;
+
 /*
 |--------------------------------------------------------------------------
 | AUTH ROUTES
@@ -24,21 +23,31 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('/reset-password', [PasswordController::class, 'reset']);
-Route::post('/bookings', [BookingController::class, 'store']);
+
 Route::middleware('auth:api')->get('/me', [AuthController::class, 'me']);
-Route::get('/blogs/{id}', function ($id) {
-    return \App\Models\Blog::findOrFail($id);
-});
+
 /*
 |--------------------------------------------------------------------------
 | PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
+
+// ✅ 🔥 IMPORTANT FIX (YOU WERE MISSING THIS)
 Route::get('/billboards', [BillboardController::class, 'index']);
+
 Route::get('/billboards/{id}', [BillboardController::class, 'show'])->whereNumber('id');
 
 Route::get('/billboards/{id}/schedule-screen', function ($id) {
     return Booking::where('billboard_id', $id)->pluck('start_date');
+});
+
+/*
+|--------------------------------------------------------------------------
+| OWNER ONLY (OWN BILLBOARDS)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:owner'])->group(function () {
+    Route::get('/owner/billboards', [BillboardController::class, 'ownerBillboards']);
 });
 
 /*
@@ -48,14 +57,14 @@ Route::get('/billboards/{id}/schedule-screen', function ($id) {
 */
 Route::middleware('auth:sanctum')->group(function () {
 
-    // ✅ CURRENT USER
+    // CURRENT USER
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
     /*
     |--------------------------------------------------------------------------
-    | 🔔 NOTIFICATIONS (FIXED)
+    | NOTIFICATIONS
     |--------------------------------------------------------------------------
     */
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -82,6 +91,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/owner/dashboard', [OwnerDashboardController::class, 'dashboard']);
         Route::get('/owner/bookings', [BookingController::class, 'ownerBookings']);
+        Route::post('/owner/bookings/{id}/reject', [BookingController::class, 'reject']);
+        Route::post('/owner/bookings/{id}/approve', [BookingController::class, 'approve']);
     });
 
     /*
@@ -91,7 +102,6 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:admin')->group(function () {
 
-        // ✅ DASHBOARD (🔥 FIXED - IMPORTANT)
         Route::get('/admin/dashboard', function () {
             return response()->json([
                 'users' => \App\Models\User::count(),
@@ -101,16 +111,13 @@ Route::middleware('auth:sanctum')->group(function () {
             ]);
         });
 
-        // Billboards
         Route::get('/admin/billboards/pending', [AdminBillboardController::class, 'pending']);
         Route::post('/admin/billboards/{id}/approve', [AdminBillboardController::class, 'approve']);
         Route::post('/admin/billboards/{id}/reject', [AdminBillboardController::class, 'reject']);
 
-        // Bookings
         Route::get('/admin/bookings', [BookingController::class, 'index']);
         Route::post('/admin/bookings/{id}/approve', [BookingController::class, 'approve']);
 
-        // Admin Users
         Route::get('/admins', [AdminController::class, 'index']);
         Route::post('/admins', [AdminController::class, 'store']);
         Route::delete('/admins/{id}', [AdminController::class, 'destroy']);
@@ -160,7 +167,4 @@ Route::middleware('auth:sanctum')->group(function () {
             'user' => $user
         ]);
     });
-
-  
-
 });
