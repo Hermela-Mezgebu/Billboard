@@ -34,7 +34,7 @@ const router = useRouter();
       </div>
 
       <div className="px-5 pb-5">
-        {/* TITLE */}
+        {/* TITLEs */}
         <h3 className="text-xl font-semibold text-white group-hover:text-blue-500">
           {billboard.location}
         </h3>

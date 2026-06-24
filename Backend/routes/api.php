@@ -137,7 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | CLIENT ROUTES
+    | CLIENT ROUTE
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:client')->group(function () {
