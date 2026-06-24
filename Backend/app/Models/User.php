@@ -25,6 +25,9 @@ protected $fillable = [
     'password',
     'role',
     'license_number',
+    'profile_image',
+    'company_name',
+    'description',
 ];
 
  public function getJWTIdentifier()
@@ -76,6 +79,16 @@ public function isOwner()
 public function bookings()
 {
     return $this->hasMany(\App\Models\Booking::class);
+}
+
+public function carts()
+{
+    return $this->hasMany(\App\Models\Cart::class);
+}
+
+public function blogs()
+{
+    return $this->hasMany(\App\Models\Blog::class, 'owner_id');
 }
 
 }

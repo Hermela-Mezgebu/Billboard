@@ -22,14 +22,13 @@ export default function Billboards() {
   const [uploading, setUploading] = useState(false);
   const [media, setMedia] = useState<File | null>(null);
 
-  const [form, setForm] = useState({
-    title: "",
-    location: "",
-    description: "",
-    screenSize: "",
-    duration: "",
-    type: "",
-  });
+const [form, setForm] = useState({
+  title: "",
+  location: "",
+  description: "",
+  screenSize: "",
+  type: "",
+});
 
   const normalizeBillboard = (b: any): Billboard => ({
     id: b.id,
@@ -72,18 +71,7 @@ export default function Billboards() {
     return () => window.removeEventListener("focus", handleFocus);
   }, [loadBillboards]);
 
-  const getPriceFromDuration = (duration: string) => {
-    switch (duration) {
-      case "1_day":
-        return 100;
-      case "1_week":
-        return 500;
-      case "1_month":
-        return 1500;
-      default:
-        return 0;
-    }
-  };
+ 
 
   const handleUpload = async () => {
     if (
@@ -91,7 +79,7 @@ export default function Billboards() {
       !form.location ||
       !form.description ||
       !form.screenSize ||
-      !form.duration ||
+  
       !form.type ||
       !media
     ) {
@@ -108,10 +96,7 @@ export default function Billboards() {
       formData.append("description", form.description);
       formData.append("type", form.type);
       formData.append("screen_size", form.screenSize);
-      formData.append(
-        "price",
-        String(getPriceFromDuration(form.duration))
-      );
+     formData.append("price", "0");
       formData.append("status", "pending");
       formData.append("media", media);
 
@@ -124,14 +109,13 @@ export default function Billboards() {
 
       alert("✅ Sent to admin for approval");
 
-      setForm({
-        title: "",
-        location: "",
-        description: "",
-        screenSize: "",
-        duration: "",
-        type: "",
-      });
+     setForm({
+  title: "",
+  location: "",
+  description: "",
+  screenSize: "",
+  type: "",
+});
       setMedia(null);
     } catch (err) {
       console.error("UPLOAD ERROR:", err);
@@ -201,32 +185,22 @@ export default function Billboards() {
           className="w-full mb-3 px-4 py-2 rounded-lg bg-slate-800"
         />
 
-        <select
-          value={form.type}
-          onChange={(e) =>
-            setForm({ ...form, type: e.target.value })
-          }
-          className="w-full mb-3 px-4 py-2 rounded-lg bg-slate-800"
-        >
-          <option value="">Select Type</option>
-          <option value="digital">Digital</option>
-          <option value="smart">Smart</option>
-          <option value="premium">Premium</option>
-          <option value="static">Static</option>
-        </select>
+   <select
+  value={form.type}
+  onChange={(e) =>
+    setForm({ ...form, type: e.target.value })
+  }
+  className="w-full mb-3 px-4 py-2 rounded-lg bg-slate-800"
+>
+  <option value="">Select Type</option>
+  <option value="lightbox">Light Box Advertising</option>
+  <option value="3d_display">3D Digital Display</option>
+  <option value="vehicle_branding">Vehicle Branding</option>
+  <option value="billboard">Outdoor Billboard</option>
+  <option value="banner">Advertising Banner</option>
+</select>
 
-        <select
-          value={form.duration}
-          onChange={(e) =>
-            setForm({ ...form, duration: e.target.value })
-          }
-          className="w-full mb-4 px-4 py-2 rounded-lg bg-slate-800"
-        >
-          <option value="">Select Duration</option>
-          <option value="1_day">1 Day</option>
-          <option value="1_week">1 Week</option>
-          <option value="1_month">1 Month</option>
-        </select>
+   
 
         <button
           onClick={handleUpload}

@@ -37,6 +37,17 @@ Route::get('/billboards', [BillboardController::class, 'index']);
 
 Route::get('/billboards/{id}', [BillboardController::class, 'show'])->whereNumber('id');
 
+/*
+|--------------------------------------------------------------------------
+| OWNER PUBLIC PROFILE
+|--------------------------------------------------------------------------
+*/
+use App\Http\Controllers\OwnerController;
+
+Route::get('/owners/{id}', [OwnerController::class, 'show'])->whereNumber('id');
+Route::get('/owners/{id}/billboards', [OwnerController::class, 'billboards'])->whereNumber('id');
+Route::get('/owners/{id}/blogs', [OwnerController::class, 'blogs'])->whereNumber('id');
+
 Route::get('/billboards/{id}/schedule-screen', function ($id) {
     return Booking::where('billboard_id', $id)->pluck('start_date');
 });
@@ -132,6 +143,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:client')->group(function () {
         Route::post('/bookings/{id}', [BookingController::class, 'store']);
         Route::get('/my-bookings', [BookingController::class, 'myBookings']);
+
+        Route::get('/cart', [App\Http\Controllers\CartController::class, 'index']);
+        Route::post('/cart', [App\Http\Controllers\CartController::class, 'store']);
+        Route::put('/cart/{id}', [App\Http\Controllers\CartController::class, 'update']);
+        Route::delete('/cart/{id}', [App\Http\Controllers\CartController::class, 'destroy']);
+        Route::post('/cart/checkout', [App\Http\Controllers\CartController::class, 'checkout']);
     });
 
     /*

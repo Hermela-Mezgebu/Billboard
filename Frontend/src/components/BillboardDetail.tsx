@@ -10,8 +10,10 @@ import {
   X,
   CheckCircle2,
   Info,
+  ArrowUpRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Billboard } from '../types';
 import { cn } from '../lib/utils';
 import { BookingPage } from './BookingPage';
@@ -24,6 +26,7 @@ interface BillboardDetailProps {
 }
 
 export default function BillboardDetail({ billboard, onBack }: BillboardDetailProps) {
+  const router = useRouter();
 
   const [billboards, setBillboards] = useState<Billboard[]>([]);
   const [viewState, setViewState] = useState<'detail' | 'schedule' | 'booking' | 'confirmation'>('detail');
@@ -202,7 +205,7 @@ const similarBillboards = useMemo(() => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.1),transparent_70%)]" />
         
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* VIDEO CONTAINER */}
             <div className="lg:col-span-8 relative aspect-video rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] group border border-white/10 bg-slate-800 flex items-center justify-center">
               <img 
@@ -240,7 +243,7 @@ const similarBillboards = useMemo(() => {
             </div>
 
             {/* OWNER CARD */}
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-4 lg:sticky lg:top-32">
               <div className="h-full bg-white dark:bg-brand-card rounded-[3rem] p-10 flex flex-col items-center text-center shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
                  <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/5 rounded-full -mr-24 -mt-24 transition-transform duration-700 group-hover:scale-125" />
                  
@@ -438,6 +441,66 @@ const similarBillboards = useMemo(() => {
           </div>
         </div>
       </section>
+
+      {/* OWNER INFO SECTION */}
+      {billboard.owner && (
+        <section className="py-20 bg-white dark:bg-brand-bg">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-4 mb-12">
+              <div className="h-0.5 w-12 bg-indigo-600" />
+              <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.5em]">Network Partner</span>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/30 rounded-[3rem] p-10 lg:p-16 border border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-10">
+                {/* Logo */}
+                <div className="shrink-0">
+                  <div className="h-28 w-28 rounded-[2rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl bg-white">
+                    <img
+                      src={billboard.owner.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(billboard.owner.name)}`}
+                      alt={billboard.owner.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 text-center lg:text-left space-y-4">
+                  <div>
+                    <h3 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
+                      {billboard.owner.company_name || billboard.owner.name}
+                    </h3>
+                    <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
+                      <span className="h-0.5 w-4 bg-indigo-600 rounded-full" />
+                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Verified Partner</span>
+                      <span className="h-0.5 w-4 bg-indigo-600 rounded-full" />
+                    </div>
+                  </div>
+
+                  {billboard.owner.description && (
+                    <p className="text-slate-500 dark:text-slate-400 text-base font-medium leading-relaxed max-w-xl">
+                      {billboard.owner.description}
+                    </p>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      const ownerId = billboard.owner?.id;
+                      if (ownerId) {
+                        router.push(`/owners/${ownerId}`);
+                      }
+                    }}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-slate-950 dark:bg-white dark:text-slate-950 text-white rounded-2xl font-bold uppercase tracking-wider text-sm shadow-xl transition-all hover:scale-105 active:scale-95 mt-4"
+                  >
+                    See More
+                    <ArrowUpRight size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* MESSAGING OVERLAY */}
       <AnimatePresence>

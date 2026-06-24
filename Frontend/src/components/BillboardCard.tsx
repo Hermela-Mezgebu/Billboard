@@ -14,13 +14,11 @@ export default function BillboardCard({
   onClick,
   onScheduleClick,
 }: BillboardCardProps) {
-  
-
 
 const router = useRouter();
   return (
     <div
-      onClick={() => onClick?.(billboard)}
+      onClick={() => router.push(`/billboards/${billboard.id}`)}
       className="w-full max-w-[22rem] border rounded-lg shadow bg-gray-800 border-gray-700 group cursor-pointer"
     >
       {/* IMAGE */}
@@ -86,20 +84,35 @@ const router = useRouter();
 
   {/* ADD TO CART BUTTON */}
   <button
-    onClick={() => {
-      const stored = localStorage.getItem("cart");
-      const cart = stored ? JSON.parse(stored) : [];
+    onClick={async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please sign in to add items to your cart");
+        return;
+      }
 
-      const exists = cart.find((i: any) => i.id === billboard.id);
-      if (exists) return alert("Already in cart");
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/cart", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ billboard_id: billboard.id }),
+        });
 
-      cart.push(billboard);
-      localStorage.setItem("cart", JSON.stringify(cart));
+        const data = await res.json();
 
-      // 🔥 update navbar count instantly
-      window.dispatchEvent(new Event("storage"));
-
-      alert("Added to cart");
+        if (res.ok) {
+          window.dispatchEvent(new Event("storage"));
+          router.push("/cart");
+        } else {
+          alert(data.message || "Failed to add to cart");
+        }
+      } catch {
+        alert("Failed to add to cart");
+      }
     }}
     className="w-1/2 bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700"
   >

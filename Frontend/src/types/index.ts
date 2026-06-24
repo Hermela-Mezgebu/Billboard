@@ -6,6 +6,11 @@ export interface Owner {
   name: string;
   description?: string;
   logo?: string;
+  profile_image?: string;
+  company_name?: string;
+  email?: string;
+  joined_date?: string;
+  total_billboards?: number;
 }
 
 /* ✅ BILLBOARD TYPE (FIXED TO MATCH DATA) */
@@ -73,6 +78,7 @@ export const billboardData: Billboard[] = [
     reach: "60,000 - 100,000",
 
     owner: {
+      id: 2,
       name: "Esayas General Advertising",
       description: "Leader in outdoor advertising",
       logo: "https://api.dicebear.com/7.x/initials/svg?seed=EG",
@@ -105,6 +111,7 @@ export const billboardData: Billboard[] = [
     reach: "80,000 - 150,000",
 
     owner: {
+      id: 2,
       name: "Esayas General Advertising",
       description: "Leader in outdoor advertising",
       logo: "https://api.dicebear.com/7.x/initials/svg?seed=EG",
@@ -137,6 +144,7 @@ export const billboardData: Billboard[] = [
     reach: "40,000 - 90,000",
 
     owner: {
+      id: 6,
       name: "Bright Media Solutions",
       description: "Specializing in digital displays",
       logo: "https://api.dicebear.com/7.x/initials/svg?seed=BM",
@@ -164,4 +172,5 @@ export interface Blog {
   ownerImg: string;
   category: string;
   content: string;
+  owner_id?: number;
 }

@@ -73,6 +73,52 @@ export const billboardService = {
 };
 
 /* ================= BOOKINGS ================= */
+/* ================= CART ================= */
+export const cartService = {
+  getCart: async () => {
+    const res = await axiosInstance.get("/cart");
+    return res.data;
+  },
+
+  addToCart: async (billboardId: number) => {
+    const res = await axiosInstance.post("/cart", { billboard_id: billboardId });
+    return res.data;
+  },
+
+  updateCartItem: async (id: number, startDate: string, endDate: string) => {
+    const res = await axiosInstance.put(`/cart/${id}`, { start_date: startDate, end_date: endDate });
+    return res.data;
+  },
+
+  removeCartItem: async (id: number) => {
+    const res = await axiosInstance.delete(`/cart/${id}`);
+    return res.data;
+  },
+
+  checkout: async () => {
+    const res = await axiosInstance.post("/cart/checkout");
+    return res.data;
+  },
+};
+
+/* ================= OWNER PROFILE ================= */
+export const ownerService = {
+  getProfile: async (id: number) => {
+    const res = await axiosInstance.get(`/owners/${id}`);
+    return res.data;
+  },
+
+  getBillboards: async (id: number) => {
+    const res = await axiosInstance.get(`/owners/${id}/billboards`);
+    return res.data;
+  },
+
+  getBlogs: async (id: number) => {
+    const res = await axiosInstance.get(`/owners/${id}/blogs`);
+    return res.data;
+  },
+};
+
 export const bookingService = {
   // ✅ CREATE BOOKING (THIS WAS MISSING)
   createBooking: async (id: string, formData: FormData) => {

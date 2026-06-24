@@ -11,7 +11,7 @@ export const billboardData = [
     pricePerMonth: 500,
     category: "Digital",
     description: "Prime Bole billboard",
-    owner: { name: "Ad Corp", logo: "/logo.png", description: "Top ads" }
+    owner: { id: 2, name: "Ad Corp", logo: "/logo.png", description: "Top ads" }
   },
   {
     id: 2,
@@ -23,7 +23,7 @@ export const billboardData = [
     pricePerMonth: 450,
     category: "Static",
     description: "Kazanchis area",
-    owner: { name: "Ad Corp", logo: "/logo.png", description: "Top ads" }
+    owner: { id: 2, name: "Ad Corp", logo: "/logo.png", description: "Top ads" }
   },
   {
     id: 3,
@@ -35,6 +35,6 @@ export const billboardData = [
     pricePerMonth: 600,
     category: "Digital",
     description: "Busy intersection",
-    owner: { name: "Ad Corp", logo: "/logo.png", description: "Top ads" }
+    owner: { id: 2, name: "Ad Corp", logo: "/logo.png", description: "Top ads" }
   }
 ];
