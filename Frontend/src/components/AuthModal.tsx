@@ -29,7 +29,7 @@ export function AuthModal({
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   
-  // ✅ AUTO GENERATE LICENSE FOR OWNER (no UI change)
+  // ✅ AUTO GENERATE LICENSE FOR OWNER (no UI changed)
   const [licenseNumber, setLicenseNumber] = useState("");
 
   const selectedRole = searchParams.get("role") || "client";
